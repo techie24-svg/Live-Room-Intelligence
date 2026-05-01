@@ -35,6 +35,10 @@ export default function Home() {
       });
 
       if (res.ok) {
+        const data = await res.json();
+        if (data.hostPin && typeof window !== 'undefined') {
+          localStorage.setItem(`hostPin:${roomCode}`, data.hostPin);
+        }
         router.push(`/presenter/${roomCode}`);
         return;
       }

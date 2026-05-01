@@ -14,6 +14,9 @@ export default function Presenter({ params }) {
   const [summary, setSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState('');
+  const [hostPin, setHostPin] = useState('');
+  const [pinInput, setPinInput] = useState('');
+  const [checkingPin, setCheckingPin] = useState(true);
 
   const audienceUrl = useMemo(() => {
     if (typeof window !== 'undefined') return `${window.location.origin}/room/${roomCode}`;
@@ -21,6 +24,7 @@ export default function Presenter({ params }) {
   }, [roomCode]);
 
   async function fetchAll() {
+    if (!hostPin) return;
     try {
       const [reactionRes, questionRes, summaryRes] = await Promise.all([
         fetch(`/api/reactions?roomCode=${roomCode}`, { cache: 'no-store' }),
@@ -46,7 +50,7 @@ export default function Presenter({ params }) {
       const res = await fetch('/api/summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode }),
+        body: JSON.stringify({ roomCode, hostPin }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to summarize');
@@ -59,12 +63,85 @@ export default function Presenter({ params }) {
   }
 
   useEffect(() => {
+    const storedPin = typeof window !== 'undefined' ? localStorage.getItem(`hostPin:${roomCode}`) : '';
+    if (!storedPin) {
+      setCheckingPin(false);
+      return;
+    }
+
+    fetch(`/api/rooms?roomCode=${encodeURIComponent(roomCode)}&host=1&hostPin=${encodeURIComponent(storedPin)}`, { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Host PIN required');
+        setHostPin(storedPin);
+      })
+      .catch(() => {
+        localStorage.removeItem(`hostPin:${roomCode}`);
+        setHostPin('');
+      })
+      .finally(() => setCheckingPin(false));
+  }, [roomCode]);
+
+  useEffect(() => {
+    if (!hostPin) return;
     fetchAll();
     const id = setInterval(fetchAll, 2000);
     return () => clearInterval(id);
-  }, [roomCode]);
+  }, [roomCode, hostPin]);
+
+  async function unlockHost(e) {
+    e.preventDefault();
+    setError('');
+    const pin = pinInput.trim();
+    if (!pin) {
+      setError('Enter the host PIN.');
+      return;
+    }
+
+    const res = await fetch(`/api/rooms?roomCode=${encodeURIComponent(roomCode)}&host=1&hostPin=${encodeURIComponent(pin)}`, { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok) {
+      setError(data.error || 'Invalid host PIN');
+      return;
+    }
+
+    localStorage.setItem(`hostPin:${roomCode}`, pin);
+    setHostPin(pin);
+  }
 
   const totalRecent = recent.engaged + recent.neutral + recent.lost;
+
+  if (checkingPin) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-6">
+        <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center shadow-glow backdrop-blur">
+          <p className="text-sm uppercase tracking-[0.3em] text-blue-200">FeelPulse</p>
+          <h1 className="mt-3 text-3xl font-bold">Checking host access...</h1>
+        </div>
+      </main>
+    );
+  }
+
+  if (!hostPin) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-6">
+        <form onSubmit={unlockHost} className="w-full max-w-md rounded-3xl border border-white/10 bg-white/10 p-8 shadow-glow backdrop-blur">
+          <p className="text-sm uppercase tracking-[0.3em] text-blue-200">Host Dashboard</p>
+          <h1 className="mt-3 text-4xl font-bold">Enter host PIN</h1>
+          <p className="mt-3 text-slate-300">Room code: <span className="font-semibold text-white">{roomCode}</span></p>
+          <input
+            value={pinInput}
+            onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
+            placeholder="HOST PIN"
+            className="mt-6 w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-center text-2xl font-bold tracking-[0.25em] text-white placeholder:text-slate-600"
+          />
+          <button className="mt-4 w-full rounded-2xl bg-blue-500 px-6 py-4 font-semibold text-white transition hover:bg-blue-400">
+            Unlock dashboard
+          </button>
+          {error && <div className="mt-4 rounded-2xl bg-rose-500/10 p-4 text-sm text-rose-200">{error}</div>}
+        </form>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen px-6 py-8">

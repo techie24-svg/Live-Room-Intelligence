@@ -44,3 +44,6 @@ UPDATE reactions SET session_id = 'legacy-' || id::text WHERE session_id IS NULL
 ALTER TABLE reactions ALTER COLUMN session_id SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS reactions_room_session_unique
 ON reactions(room_code, session_id);
+
+-- Migration for host dashboard PIN protection.
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS host_pin TEXT;

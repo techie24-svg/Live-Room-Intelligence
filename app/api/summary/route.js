@@ -3,6 +3,8 @@ import { GoogleGenAI } from '@google/genai';
 import { sql } from '@/lib/db';
 import { cleanRoomCode } from '@/lib/sanitize';
 
+export const dynamic = 'force-dynamic';
+
 function extractJson(text) {
   const cleaned = String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
   try {
@@ -28,11 +30,24 @@ function fallbackSummary(questions) {
   };
 }
 
+async function verifyHostPin(roomCode, hostPin) {
+  const rows = await sql`SELECT host_pin FROM rooms WHERE code = ${roomCode} LIMIT 1`;
+  if (!rows.length) return { ok: false, error: 'Room not found', status: 404 };
+  if (!rows[0].host_pin || rows[0].host_pin !== String(hostPin || '').trim()) {
+    return { ok: false, error: 'Invalid host PIN', status: 403 };
+  }
+  return { ok: true };
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
     const roomCode = cleanRoomCode(body.roomCode);
+    const hostPin = String(body.hostPin || '').trim();
     if (!roomCode) return NextResponse.json({ error: 'roomCode is required' }, { status: 400 });
+
+    const hostCheck = await verifyHostPin(roomCode, hostPin);
+    if (!hostCheck.ok) return NextResponse.json({ error: hostCheck.error }, { status: hostCheck.status });
 
     const questions = await sql`
       SELECT text, created_at
@@ -70,27 +85,23 @@ Questions:
 ${questions.map((q, i) => `${i + 1}. ${q.text}`).join('\n')}
 `;
 
-    const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-    });
-
-    const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
-      contents: prompt,
-    });
-
-    const raw =
-      response?.text ||
-      response?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      '';
-
-    const result = extractJson(raw);
+    let result;
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: prompt,
+      });
+      result = extractJson(response?.text || '');
+    } catch (geminiError) {
+      console.error('Gemini summary failed. Returning fallback summary:', geminiError);
+      result = fallbackSummary(questions);
+    }
 
     await sql`INSERT INTO summaries (room_code, result) VALUES (${roomCode}, ${JSON.stringify(result)}::jsonb)`;
 
     return NextResponse.json({ result });
   } catch (error) {
-    console.error('Summary API error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
