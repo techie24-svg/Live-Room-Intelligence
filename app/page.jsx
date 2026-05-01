@@ -18,11 +18,19 @@ function cleanRoomCode(value) {
 export default function Home() {
   const router = useRouter();
   const [joinCode, setJoinCode] = useState('');
+  const [hostPinInput, setHostPinInput] = useState('');
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState('');
 
   async function createSession() {
+    const hostPin = hostPinInput.trim();
+
+    if (!/^\d{4,12}$/.test(hostPin)) {
+      setError('Set a host PIN using 4 to 12 numbers.');
+      return;
+    }
+
     setCreating(true);
     setError('');
 
@@ -31,13 +39,13 @@ export default function Home() {
       const res = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode }),
+        body: JSON.stringify({ roomCode, hostPin }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (data.hostPin && typeof window !== 'undefined') {
-          localStorage.setItem(`hostPin:${roomCode}`, data.hostPin);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`hostPin:${roomCode}`, data.hostPin || hostPin);
         }
         router.push(`/presenter/${roomCode}`);
         return;
@@ -85,7 +93,16 @@ export default function Home() {
           <div className="mt-8 grid gap-4 md:grid-cols-[1fr_1fr]">
             <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
               <h2 className="text-2xl font-bold">Host a session</h2>
-              <p className="mt-2 text-slate-400">Create a fresh room code and presenter dashboard.</p>
+              <p className="mt-2 text-slate-400">Create a fresh room code and protect the presenter dashboard with your own PIN.</p>
+              <label className="mt-5 block text-sm font-semibold text-slate-300">Host PIN</label>
+              <input
+                value={hostPinInput}
+                onChange={(e) => setHostPinInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                placeholder="Create 4-12 digit PIN"
+                inputMode="numeric"
+                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-center text-xl font-bold tracking-[0.2em] text-white placeholder:text-sm placeholder:font-medium placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-600"
+              />
+              <p className="mt-2 text-xs text-slate-500">Save this PIN. You will need it to reopen the host dashboard.</p>
               <button
                 onClick={createSession}
                 disabled={creating}
