@@ -72,7 +72,7 @@ export default function Presenter({ params }) {
         <header className="mb-6 flex flex-col justify-between gap-4 rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur md:flex-row md:items-center">
           <div>
             <p className="text-sm uppercase tracking-[0.3em] text-blue-200">Presenter Dashboard</p>
-            <h1 className="mt-2 text-4xl font-bold">Live Room Intelligence</h1>
+            <h1 className="mt-2 text-4xl font-bold">FeelPulse</h1>
             <p className="mt-2 text-slate-300">Room code: <span className="font-semibold text-white">{roomCode}</span></p>
           </div>
           <div className="flex items-center gap-4 rounded-3xl bg-white p-4 text-slate-950">

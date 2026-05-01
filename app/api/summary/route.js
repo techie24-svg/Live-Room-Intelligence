@@ -56,7 +56,7 @@ export async function POST(req) {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
     const prompt = `
-You are analyzing anonymous questions from a company townhall.
+You are analyzing anonymous questions from a live session.
 Be concise, neutral, and executive-ready. Do not invent facts.
 
 Return STRICT JSON only with this exact shape:

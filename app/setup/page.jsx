@@ -92,8 +92,8 @@ export default function SetupPage() {
 
         <div className="mt-8 flex gap-4 text-sm text-slate-300">
           <Link href="/" className="hover:text-white">Home</Link>
-          <Link href="/presenter/townhall-demo" className="hover:text-white">Presenter Demo</Link>
-          <Link href="/room/townhall-demo" className="hover:text-white">Audience Demo</Link>
+          <Link href="/presenter/feelpulse-demo" className="hover:text-white">Presenter Demo</Link>
+          <Link href="/room/feelpulse-demo" className="hover:text-white">Audience Demo</Link>
         </div>
       </div>
     </main>

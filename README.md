@@ -1,13 +1,13 @@
-# Live Room Intelligence
+# FeelPulse
 
-A full-stack townhall app using **Next.js + Vercel + Neon Postgres + Gemini API**.
+A full-stack live session app using **Next.js + Vercel + Neon Postgres + Gemini API**.
 
 It lets an audience:
 - react live: Engaged / Neutral / Lost
 - submit anonymous questions
 
 It lets a presenter:
-- see live room energy
+- see live session energy
 - see anonymous questions
 - generate Gemini-powered themes, summaries, and priority questions
 
@@ -59,8 +59,8 @@ npm run dev
 Open:
 
 - Home: http://localhost:3000
-- Presenter: http://localhost:3000/presenter/townhall-demo
-- Audience: http://localhost:3000/room/townhall-demo
+- Presenter: http://localhost:3000/presenter/feelpulse-demo
+- Audience: http://localhost:3000/room/feelpulse-demo
 
 ## 5. Deploy to Vercel
 
@@ -85,4 +85,4 @@ Open:
 
 - Gemini and Neon keys are server-side only.
 - This version intentionally uses polling instead of WebSockets to keep deployment simple and reliable.
-- The app supports multiple rooms by changing the URL code, for example `/presenter/q2-townhall`.
+- The app supports multiple rooms by changing the URL code, for example `/presenter/team-sync`.

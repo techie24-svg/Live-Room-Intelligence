@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS rooms (
   code TEXT PRIMARY KEY,
-  title TEXT NOT NULL DEFAULT 'Townhall',
+  title TEXT NOT NULL DEFAULT 'FeelPulse Session',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

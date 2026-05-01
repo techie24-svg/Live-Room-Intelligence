@@ -70,7 +70,7 @@ export default function Home() {
     <main className="min-h-screen px-6 py-10">
       <div className="mx-auto max-w-5xl">
         <div className="rounded-3xl border border-white/10 bg-white/10 p-8 shadow-glow backdrop-blur">
-          <p className="mb-3 text-sm uppercase tracking-[0.3em] text-blue-200">Live Room Intelligence</p>
+          <p className="mb-3 text-sm uppercase tracking-[0.3em] text-blue-200">FeelPulse</p>
           <h1 className="max-w-3xl text-5xl font-bold leading-tight md:text-7xl">
             Create a live session. Let people join by code.
           </h1>
