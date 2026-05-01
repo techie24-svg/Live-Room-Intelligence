@@ -1,22 +1,58 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Send, Smile, Meh, Frown } from 'lucide-react';
+
+function getOrCreateVoterSession(roomCode) {
+  if (typeof window === 'undefined') return '';
+
+  const key = `live-room-voter-session:${roomCode}`;
+  let sessionId = window.localStorage.getItem(key);
+
+  if (!sessionId) {
+    const randomId =
+      typeof window.crypto?.randomUUID === 'function'
+        ? window.crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    sessionId = `voter-${randomId}`;
+    window.localStorage.setItem(key, sessionId);
+  }
+
+  return sessionId;
+}
 
 export default function AudienceRoom({ params }) {
   const roomCode = params.code;
   const [question, setQuestion] = useState('');
   const [status, setStatus] = useState('');
   const [selected, setSelected] = useState(null);
+  const [sessionId, setSessionId] = useState('');
+
+  useEffect(() => {
+    setSessionId(getOrCreateVoterSession(roomCode));
+  }, [roomCode]);
 
   async function sendReaction(type) {
+    if (!sessionId) {
+      setStatus('Preparing your voting session. Please tap again.');
+      return;
+    }
+
     setSelected(type);
-    setStatus('Reaction sent');
-    await fetch('/api/reactions', {
+    setStatus('Vote saved');
+
+    const res = await fetch('/api/reactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode, type }),
+      body: JSON.stringify({ roomCode, type, sessionId }),
     });
+
+    if (!res.ok) {
+      setStatus('Could not save vote');
+      return;
+    }
+
     setTimeout(() => setStatus(''), 1400);
   }
 
@@ -35,11 +71,11 @@ export default function AudienceRoom({ params }) {
     setTimeout(() => setStatus(''), 1800);
   }
 
-  const reactions = [
+  const reactions = useMemo(() => [
     { type: 'engaged', label: 'Engaged', icon: Smile, emoji: '👍' },
     { type: 'neutral', label: 'Neutral', icon: Meh, emoji: '😐' },
     { type: 'lost', label: 'Lost', icon: Frown, emoji: '😵‍💫' },
-  ];
+  ], []);
 
   return (
     <main className="min-h-screen px-5 py-8">
@@ -51,7 +87,8 @@ export default function AudienceRoom({ params }) {
         </div>
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
-          <h2 className="mb-4 text-xl font-semibold">How are you feeling?</h2>
+          <h2 className="mb-2 text-xl font-semibold">How are you feeling?</h2>
+          <p className="mb-4 text-sm text-slate-400">One vote per device/session. Changing your choice updates your vote instead of adding another one.</p>
           <div className="grid gap-3">
             {reactions.map(({ type, label, icon: Icon, emoji }) => (
               <button

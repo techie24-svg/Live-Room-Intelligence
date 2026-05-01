@@ -22,10 +22,16 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS reactions (
       id BIGSERIAL PRIMARY KEY,
       room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+      session_id TEXT NOT NULL,
       type TEXT NOT NULL CHECK (type IN ('engaged', 'neutral', 'lost')),
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  await sql`ALTER TABLE reactions ADD COLUMN IF NOT EXISTS session_id TEXT`;
+  await sql`UPDATE reactions SET session_id = 'legacy-' || id::text WHERE session_id IS NULL`;
+  await sql`ALTER TABLE reactions ALTER COLUMN session_id SET NOT NULL`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS reactions_room_session_unique ON reactions(room_code, session_id)`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS questions (
