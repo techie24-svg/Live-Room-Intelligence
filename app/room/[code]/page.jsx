@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Send, Smile, Meh, Frown, UserRound, Pencil } from 'lucide-react';
+import { Send, Smile, Meh, Frown, UserRound } from 'lucide-react';
 
 import { getOrCreateSessionId } from '@/lib/session';
 
@@ -21,7 +21,6 @@ export default function AudienceRoom({ params }) {
   const [sessionId, setSessionId] = useState('');
   const [participantName, setParticipantName] = useState('');
   const [nameDraft, setNameDraft] = useState('');
-  const [needsName, setNeedsName] = useState(true);
 
   useEffect(() => {
     setSessionId(getOrCreateSessionId(`voter:${roomCode}`));
@@ -30,7 +29,6 @@ export default function AudienceRoom({ params }) {
     if (savedName) {
       setParticipantName(savedName);
       setNameDraft(savedName);
-      setNeedsName(false);
     }
   }, [roomCode]);
 
@@ -46,20 +44,18 @@ export default function AudienceRoom({ params }) {
     window.localStorage.setItem(nameKey(roomCode), nextName);
     setParticipantName(nextName);
     setNameDraft(nextName);
-    setNeedsName(false);
-    setStatus('');
+    setStatus('Name saved');
+    setTimeout(() => setStatus(''), 1200);
   }
 
-  function editName() {
-    setNameDraft(participantName);
-    setNeedsName(true);
+  function requireName() {
+    if (participantName) return true;
+    setStatus('Please enter your name first.');
+    return false;
   }
 
   async function sendReaction(type) {
-    if (needsName) {
-      setStatus('Enter your name before voting.');
-      return;
-    }
+    if (!requireName()) return;
 
     if (!sessionId) {
       setStatus('Preparing your voting session. Please tap again.');
@@ -85,12 +81,7 @@ export default function AudienceRoom({ params }) {
 
   async function submitQuestion(e) {
     e.preventDefault();
-
-    if (needsName) {
-      setStatus('Enter your name before asking a question.');
-      return;
-    }
-
+    if (!requireName()) return;
     if (!question.trim()) return;
 
     const text = question.trim();
@@ -113,62 +104,34 @@ export default function AudienceRoom({ params }) {
     { type: 'lost', label: 'Lost', icon: Frown, emoji: '😵‍💫' },
   ], []);
 
-  if (needsName) {
-    return (
-      <main className="min-h-screen px-5 py-8">
-        <div className="mx-auto flex min-h-[80vh] max-w-xl items-center">
-          <form onSubmit={saveName} className="w-full rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-100">
-              <UserRound className="h-7 w-7" />
-            </div>
-
-            <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Join Room {roomCode}</p>
-            <h1 className="mt-2 text-4xl font-bold">What should we call you?</h1>
-            <p className="mt-3 text-slate-300">
-              Use your name or a nickname. The host will see this next to your questions.
-            </p>
-
-            <input
-              autoFocus
-              value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              placeholder="Your name or nickname"
-              maxLength={40}
-              className="mt-6 w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-lg text-white placeholder:text-slate-500"
-            />
-
-            {status && <p className="mt-3 text-sm text-amber-200">{status}</p>}
-
-            <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-6 py-4 font-semibold text-white transition hover:bg-blue-400">
-              Continue to session <Send className="h-5 w-5" />
-            </button>
-
-            <p className="mt-4 text-center text-xs text-slate-500">
-              Your name is saved only in this browser for this room.
-            </p>
-          </form>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen px-5 py-8">
       <div className="mx-auto max-w-xl">
         <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
           <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Room</p>
           <h1 className="mt-2 text-4xl font-bold">{roomCode}</h1>
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3">
-            <p className="text-sm text-slate-300">
-              Joined as <span className="font-semibold text-white">{participantName}</span>
-            </p>
-            <button
-              onClick={editName}
-              className="flex items-center gap-1 rounded-xl border border-white/10 px-3 py-2 text-xs text-slate-300 transition hover:bg-white/10"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Edit
-            </button>
-          </div>
+          <p className="mt-3 text-slate-300">React honestly and submit questions.</p>
+
+          <form onSubmit={saveName} className="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+            <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-200">
+              <UserRound className="h-4 w-4" /> Your name or nickname
+            </label>
+            <div className="flex gap-2">
+              <input
+                value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                placeholder="Enter your name"
+                maxLength={40}
+                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500"
+              />
+              <button className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400">
+                Save
+              </button>
+            </div>
+            {participantName && (
+              <p className="mt-2 text-xs text-slate-400">Joined as <span className="text-slate-200">{participantName}</span></p>
+            )}
+          </form>
         </div>
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
@@ -203,12 +166,12 @@ export default function AudienceRoom({ params }) {
               maxLength={700}
             />
             <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-5 py-4 font-semibold transition hover:bg-blue-400">
-              Send question <Send className="h-5 w-5" />
+              <Send className="h-5 w-5" /> Submit question
             </button>
           </form>
         </section>
 
-        {status && <p className="mt-5 text-center text-sm text-blue-100">{status}</p>}
+        {status && <div className="mt-5 rounded-2xl bg-emerald-400/10 p-4 text-center text-emerald-200">{status}</div>}
       </div>
     </main>
   );
