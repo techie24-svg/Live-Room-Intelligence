@@ -1,86 +1,90 @@
-// pages/api/setup.js
+import { useState } from "react";
 
-import { sql } from "@/lib/db";
+export default function SetupPage() {
+  const [secret, setSecret] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState("");
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+  async function runSetup() {
+    setLoading(true);
+    setResult("");
+
+    try {
+      const res = await fetch("/api/setup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ secret }),
+      });
+
+      const text = await res.text();
+
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        throw new Error(`API returned non-JSON response: ${text}`);
+      }
+
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `Setup failed with status ${res.status}`);
+      }
+
+      setResult("✅ Setup completed successfully");
+    } catch (err) {
+      setResult(`❌ Setup failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   }
 
-  try {
-    const { secret } = req.body;
+  return (
+    <main style={{ padding: 40, fontFamily: "Arial, sans-serif" }}>
+      <h1>Database Setup</h1>
 
-    if (!process.env.SETUP_SECRET) {
-      return res.status(500).json({
-        ok: false,
-        error: "SETUP_SECRET not set in env",
-      });
-    }
+      <p>Enter your setup secret to initialize Neon tables.</p>
 
-    if (secret !== process.env.SETUP_SECRET) {
-      return res.status(401).json({
-        ok: false,
-        error: "Invalid setup secret",
-      });
-    }
+      <input
+        type="password"
+        value={secret}
+        onChange={(e) => setSecret(e.target.value)}
+        placeholder="SETUP_SECRET"
+        style={{
+          padding: 12,
+          width: 320,
+          marginRight: 12,
+          border: "1px solid #ccc",
+          borderRadius: 8,
+        }}
+      />
 
-    // Create tables
-    await sql(`
-      CREATE TABLE IF NOT EXISTS rooms (
-        id SERIAL PRIMARY KEY,
-        code TEXT UNIQUE NOT NULL,
-        title TEXT DEFAULT 'Townhall',
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
+      <button
+        onClick={runSetup}
+        disabled={loading}
+        style={{
+          padding: "12px 18px",
+          borderRadius: 8,
+          border: "none",
+          cursor: "pointer",
+        }}
+      >
+        {loading ? "Running..." : "Run Setup"}
+      </button>
 
-    await sql(`
-      CREATE TABLE IF NOT EXISTS reactions (
-        id SERIAL PRIMARY KEY,
-        room_code TEXT NOT NULL,
-        type TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    await sql(`
-      CREATE TABLE IF NOT EXISTS questions (
-        id SERIAL PRIMARY KEY,
-        room_code TEXT NOT NULL,
-        text TEXT NOT NULL,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    await sql(`
-      CREATE TABLE IF NOT EXISTS summaries (
-        id SERIAL PRIMARY KEY,
-        room_code TEXT NOT NULL,
-        summary JSONB,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `);
-
-    // Seed demo room
-    await sql(
-      `
-      INSERT INTO rooms (code, title)
-      VALUES ($1, $2)
-      ON CONFLICT (code) DO NOTHING;
-      `,
-      ["townhall-demo", "Townhall Demo"]
-    );
-
-    return res.status(200).json({
-      ok: true,
-      message: "Database setup complete",
-    });
-  } catch (err) {
-    console.error("SETUP ERROR:", err);
-
-    return res.status(500).json({
-      ok: false,
-      error: err.message,
-    });
-  }
+      {result && (
+        <pre
+          style={{
+            marginTop: 24,
+            padding: 16,
+            background: "#f4f4f4",
+            borderRadius: 8,
+            whiteSpace: "pre-wrap",
+          }}
+        >
+          {result}
+        </pre>
+      )}
+    </main>
+  );
 }
