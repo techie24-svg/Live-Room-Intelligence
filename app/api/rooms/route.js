@@ -4,12 +4,26 @@ import { cleanRoomCode } from '@/lib/sanitize';
 
 export const dynamic = 'force-dynamic';
 
+async function ensureRoomsSchema(sql) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS rooms (
+      code TEXT PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+
+  // Older deployments may already have rooms without a title column.
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT 'FeelPulse Session'`;
+}
+
 export async function POST(req) {
   try {
     const sql = getSql();
+    await ensureRoomsSchema(sql);
+
     const body = await req.json();
     const roomCode = cleanRoomCode(body.roomCode);
-    const title = String(body.title || 'Live Session').trim().slice(0, 120) || 'Live Session';
+    const title = String(body.title || 'FeelPulse Session').trim().slice(0, 120) || 'FeelPulse Session';
 
     if (!roomCode) return NextResponse.json({ error: 'roomCode is required' }, { status: 400 });
 
@@ -31,6 +45,8 @@ export async function POST(req) {
 export async function GET(req) {
   try {
     const sql = getSql();
+    await ensureRoomsSchema(sql);
+
     const { searchParams } = new URL(req.url);
     const roomCode = cleanRoomCode(searchParams.get('roomCode'));
 

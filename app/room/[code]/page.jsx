@@ -3,25 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Send, Smile, Meh, Frown } from 'lucide-react';
 
-function getOrCreateVoterSession(roomCode) {
-  if (typeof window === 'undefined') return '';
-
-  const key = `live-room-voter-session:${roomCode}`;
-  let sessionId = window.localStorage.getItem(key);
-
-  if (!sessionId) {
-    const randomId =
-      typeof window.crypto?.randomUUID === 'function'
-        ? window.crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-    sessionId = `voter-${randomId}`;
-    window.localStorage.setItem(key, sessionId);
-  }
-
-  return sessionId;
-}
-
+import { getOrCreateSessionId } from '@/lib/session';
 export default function AudienceRoom({ params }) {
   const roomCode = params.code;
   const [question, setQuestion] = useState('');
@@ -30,7 +12,7 @@ export default function AudienceRoom({ params }) {
   const [sessionId, setSessionId] = useState('');
 
   useEffect(() => {
-    setSessionId(getOrCreateVoterSession(roomCode));
+    setSessionId(getOrCreateSessionId(`voter:${roomCode}`));
   }, [roomCode]);
 
   async function sendReaction(type) {
