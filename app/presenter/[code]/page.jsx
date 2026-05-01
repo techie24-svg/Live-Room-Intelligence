@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Brain, RefreshCw, Sparkles } from 'lucide-react';
+import { Brain, RefreshCw, Sparkles, Users } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import EnergyBar from '@/components/EnergyBar';
 import QuestionCard from '@/components/QuestionCard';
@@ -11,12 +11,10 @@ export default function Presenter({ params }) {
   const [reactions, setReactions] = useState({ engaged: 0, neutral: 0, lost: 0 });
   const [recent, setRecent] = useState({ engaged: 0, neutral: 0, lost: 0 });
   const [questions, setQuestions] = useState([]);
+  const [participants, setParticipants] = useState([]);
   const [summary, setSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState('');
-  const [hostPin, setHostPin] = useState('');
-  const [pinInput, setPinInput] = useState('');
-  const [checkingPin, setCheckingPin] = useState(true);
 
   const audienceUrl = useMemo(() => {
     if (typeof window !== 'undefined') return `${window.location.origin}/room/${roomCode}`;
@@ -24,19 +22,21 @@ export default function Presenter({ params }) {
   }, [roomCode]);
 
   async function fetchAll() {
-    if (!hostPin) return;
     try {
-      const [reactionRes, questionRes, summaryRes] = await Promise.all([
+      const [reactionRes, questionRes, summaryRes, participantRes] = await Promise.all([
         fetch(`/api/reactions?roomCode=${roomCode}`, { cache: 'no-store' }),
         fetch(`/api/questions?roomCode=${roomCode}`, { cache: 'no-store' }),
         fetch(`/api/summary?roomCode=${roomCode}`, { cache: 'no-store' }),
+        fetch(`/api/participants?roomCode=${roomCode}`, { cache: 'no-store' }),
       ]);
       const reactionData = await reactionRes.json();
       const questionData = await questionRes.json();
       const summaryData = await summaryRes.json();
+      const participantData = await participantRes.json();
       if (reactionData.totals) setReactions(reactionData.totals);
       if (reactionData.recent) setRecent(reactionData.recent);
       if (questionData.questions) setQuestions(questionData.questions);
+      if (participantData.participants) setParticipants(participantData.participants);
       if (summaryData.summary?.result) setSummary(summaryData.summary.result);
     } catch (err) {
       setError(err.message);
@@ -50,7 +50,7 @@ export default function Presenter({ params }) {
       const res = await fetch('/api/summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode, hostPin }),
+        body: JSON.stringify({ roomCode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to summarize');
@@ -63,85 +63,12 @@ export default function Presenter({ params }) {
   }
 
   useEffect(() => {
-    const storedPin = typeof window !== 'undefined' ? localStorage.getItem(`hostPin:${roomCode}`) : '';
-    if (!storedPin) {
-      setCheckingPin(false);
-      return;
-    }
-
-    fetch(`/api/rooms?roomCode=${encodeURIComponent(roomCode)}&host=1&hostPin=${encodeURIComponent(storedPin)}`, { cache: 'no-store' })
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Host PIN required');
-        setHostPin(storedPin);
-      })
-      .catch(() => {
-        localStorage.removeItem(`hostPin:${roomCode}`);
-        setHostPin('');
-      })
-      .finally(() => setCheckingPin(false));
-  }, [roomCode]);
-
-  useEffect(() => {
-    if (!hostPin) return;
     fetchAll();
     const id = setInterval(fetchAll, 2000);
     return () => clearInterval(id);
-  }, [roomCode, hostPin]);
-
-  async function unlockHost(e) {
-    e.preventDefault();
-    setError('');
-    const pin = pinInput.trim();
-    if (!pin) {
-      setError('Enter the host PIN.');
-      return;
-    }
-
-    const res = await fetch(`/api/rooms?roomCode=${encodeURIComponent(roomCode)}&host=1&hostPin=${encodeURIComponent(pin)}`, { cache: 'no-store' });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error || 'Invalid host PIN');
-      return;
-    }
-
-    localStorage.setItem(`hostPin:${roomCode}`, pin);
-    setHostPin(pin);
-  }
+  }, [roomCode]);
 
   const totalRecent = recent.engaged + recent.neutral + recent.lost;
-
-  if (checkingPin) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-6">
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-8 text-center shadow-glow backdrop-blur">
-          <p className="text-sm uppercase tracking-[0.3em] text-blue-200">FeelPulse</p>
-          <h1 className="mt-3 text-3xl font-bold">Checking host access...</h1>
-        </div>
-      </main>
-    );
-  }
-
-  if (!hostPin) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-6">
-        <form onSubmit={unlockHost} className="w-full max-w-md rounded-3xl border border-white/10 bg-white/10 p-8 shadow-glow backdrop-blur">
-          <p className="text-sm uppercase tracking-[0.3em] text-blue-200">Host Dashboard</p>
-          <h1 className="mt-3 text-4xl font-bold">Enter host PIN</h1>
-          <p className="mt-3 text-slate-300">Room code: <span className="font-semibold text-white">{roomCode}</span></p>
-          <input
-            value={pinInput}
-            onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
-            placeholder="HOST PIN"
-            className="mt-6 w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-center text-2xl font-bold tracking-[0.25em] text-white placeholder:text-slate-600"
-          />
-          <button className="mt-4 w-full rounded-2xl bg-blue-500 px-6 py-4 font-semibold text-white transition hover:bg-blue-400">
-            Unlock dashboard
-          </button>
-          {error && <div className="mt-4 rounded-2xl bg-rose-500/10 p-4 text-sm text-rose-200">{error}</div>}
-        </form>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen px-6 py-8">
@@ -201,6 +128,33 @@ export default function Presenter({ params }) {
           </section>
 
           <aside className="space-y-6">
+            <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-2xl bg-blue-500/20 p-3"><Users className="h-6 w-6 text-blue-200" /></div>
+                <div>
+                  <p className="text-sm uppercase tracking-[0.2em] text-blue-200">Live Room</p>
+                  <h2 className="text-2xl font-bold">Current Participants ({participants.length})</h2>
+                </div>
+              </div>
+
+              {participants.length ? (
+                <div className="max-h-72 space-y-2 overflow-auto pr-1">
+                  {participants.map((p) => (
+                    <div key={p.session_id || `${p.user_name}-${p.joined_at}`} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-950/60 px-4 py-3">
+                      <span className="font-semibold text-slate-100">{p.user_name || 'Anonymous'}</span>
+                      <span className="text-xs text-slate-500">
+                        {p.last_seen_at ? new Date(p.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="rounded-2xl border border-dashed border-white/15 p-6 text-center text-slate-400">
+                  No participants have joined yet.
+                </p>
+              )}
+            </div>
+
             <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
               <div className="mb-4 flex items-center gap-3">
                 <div className="rounded-2xl bg-blue-500/20 p-3"><Brain className="h-6 w-6 text-blue-200" /></div>

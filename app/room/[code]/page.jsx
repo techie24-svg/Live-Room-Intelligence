@@ -5,58 +5,66 @@ import { Send, Smile, Meh, Frown, UserRound } from 'lucide-react';
 
 import { getOrCreateSessionId } from '@/lib/session';
 
-function nameKey(roomCode) {
-  return `participantName:${roomCode}`;
-}
-
-function cleanName(value) {
-  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, 40);
-}
-
 export default function AudienceRoom({ params }) {
   const roomCode = params.code;
   const [question, setQuestion] = useState('');
   const [status, setStatus] = useState('');
   const [selected, setSelected] = useState(null);
   const [sessionId, setSessionId] = useState('');
-  const [participantName, setParticipantName] = useState('');
-  const [nameDraft, setNameDraft] = useState('');
+  const [userName, setUserName] = useState('');
+  const [nameInput, setNameInput] = useState('');
+  const [joining, setJoining] = useState(false);
 
   useEffect(() => {
-    setSessionId(getOrCreateSessionId(`voter:${roomCode}`));
+    const id = getOrCreateSessionId(`voter:${roomCode}`);
+    setSessionId(id);
 
-    const savedName = cleanName(window.localStorage.getItem(nameKey(roomCode)));
-    if (savedName) {
-      setParticipantName(savedName);
-      setNameDraft(savedName);
+    const storedName = window.localStorage.getItem(`feelpulse-name:${roomCode}`) || window.localStorage.getItem('feelpulse-name') || '';
+    if (storedName) {
+      setUserName(storedName);
+      setNameInput(storedName);
     }
   }, [roomCode]);
 
-  function saveName(e) {
-    e.preventDefault();
-    const nextName = cleanName(nameDraft);
+  useEffect(() => {
+    if (!roomCode || !sessionId || !userName) return;
 
-    if (!nextName) {
-      setStatus('Please enter your name or nickname.');
+    fetch('/api/participants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomCode, sessionId, userName }),
+    }).catch(() => {});
+  }, [roomCode, sessionId, userName]);
+
+  async function joinRoom(e) {
+    e.preventDefault();
+    const finalName = nameInput.trim() || 'Anonymous';
+    if (!sessionId) {
+      setStatus('Preparing your session. Please try again.');
       return;
     }
 
-    window.localStorage.setItem(nameKey(roomCode), nextName);
-    setParticipantName(nextName);
-    setNameDraft(nextName);
-    setStatus('Name saved');
-    setTimeout(() => setStatus(''), 1200);
-  }
+    setJoining(true);
+    setStatus('');
+    window.localStorage.setItem(`feelpulse-name:${roomCode}`, finalName);
+    window.localStorage.setItem('feelpulse-name', finalName);
 
-  function requireName() {
-    if (participantName) return true;
-    setStatus('Please enter your name first.');
-    return false;
+    try {
+      const res = await fetch('/api/participants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode, sessionId, userName: finalName }),
+      });
+      if (!res.ok) throw new Error('Could not join room');
+      setUserName(finalName);
+    } catch (err) {
+      setStatus(err.message || 'Could not join room');
+    } finally {
+      setJoining(false);
+    }
   }
 
   async function sendReaction(type) {
-    if (!requireName()) return;
-
     if (!sessionId) {
       setStatus('Preparing your voting session. Please tap again.');
       return;
@@ -81,19 +89,15 @@ export default function AudienceRoom({ params }) {
 
   async function submitQuestion(e) {
     e.preventDefault();
-    if (!requireName()) return;
     if (!question.trim()) return;
-
     const text = question.trim();
     setQuestion('');
     setStatus('Question submitted');
-
     const res = await fetch('/api/questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomCode, text, userName: participantName }),
+      body: JSON.stringify({ roomCode, text, userName: userName || 'Anonymous' }),
     });
-
     if (!res.ok) setStatus('Could not submit question');
     setTimeout(() => setStatus(''), 1800);
   }
@@ -104,37 +108,41 @@ export default function AudienceRoom({ params }) {
     { type: 'lost', label: 'Lost', icon: Frown, emoji: '😵‍💫' },
   ], []);
 
-  if (!participantName) {
+  if (!userName) {
     return (
       <main className="min-h-screen px-5 py-8">
         <div className="mx-auto max-w-xl">
           <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
             <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Room</p>
             <h1 className="mt-2 text-4xl font-bold">{roomCode}</h1>
-            <p className="mt-3 text-slate-300">Enter your name or nickname to join this session.</p>
-
-            <form onSubmit={saveName} className="mt-6 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-200">
-                <UserRound className="h-4 w-4" /> Your name or nickname
-              </label>
-              <div className="flex gap-2">
-                <input
-                  value={nameDraft}
-                  onChange={(e) => setNameDraft(e.target.value)}
-                  placeholder="Enter your name"
-                  maxLength={40}
-                  autoFocus
-                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500"
-                />
-                <button className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400">
-                  Join
-                </button>
-              </div>
-              <p className="mt-2 text-xs text-slate-400">This name will appear with your questions.</p>
-            </form>
-
-            {status && <div className="mt-5 rounded-2xl bg-emerald-400/10 p-4 text-center text-emerald-200">{status}</div>}
+            <p className="mt-3 text-slate-300">Enter your name or nickname before joining.</p>
           </div>
+
+          <form onSubmit={joinRoom} className="mt-6 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-2xl bg-blue-500/20 p-3 text-blue-100"><UserRound className="h-6 w-6" /></div>
+              <div>
+                <h2 className="text-xl font-semibold">What should we call you?</h2>
+                <p className="text-sm text-slate-400">This name appears next to your questions on the host dashboard.</p>
+              </div>
+            </div>
+            <input
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              placeholder="Your name or nickname"
+              maxLength={80}
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-white placeholder:text-slate-500"
+              autoFocus
+            />
+            <button
+              disabled={joining}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-5 py-4 font-semibold transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {joining ? 'Joining...' : 'Continue'}
+            </button>
+          </form>
+
+          {status && <div className="mt-5 rounded-2xl bg-rose-500/10 p-4 text-center text-rose-200">{status}</div>}
         </div>
       </main>
     );
@@ -146,13 +154,7 @@ export default function AudienceRoom({ params }) {
         <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
           <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Room</p>
           <h1 className="mt-2 text-4xl font-bold">{roomCode}</h1>
-          <p className="mt-3 text-slate-300">React honestly and submit questions.</p>
-
-          <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-            <p className="flex items-center gap-2 text-sm text-slate-400">
-              <UserRound className="h-4 w-4" /> Joined as <span className="font-semibold text-slate-200">{participantName}</span>
-            </p>
-          </div>
+          <p className="mt-3 text-slate-300">React honestly and submit questions as <span className="font-semibold text-white">{userName}</span>.</p>
         </div>
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-slate-950/50 p-5">

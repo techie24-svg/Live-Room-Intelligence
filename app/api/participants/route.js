@@ -4,6 +4,10 @@ import { cleanRoomCode, cleanText } from '@/lib/sanitize';
 
 export const dynamic = 'force-dynamic';
 
+function cleanSessionId(value) {
+  return String(value || '').trim().replace(/[^a-zA-Z0-9:_-]/g, '').slice(0, 160);
+}
+
 async function ensureRoom(sql, roomCode) {
   await sql`INSERT INTO rooms (code) VALUES (${roomCode}) ON CONFLICT (code) DO NOTHING`;
 }
@@ -13,21 +17,23 @@ export async function POST(req) {
     const sql = getSql();
     const body = await req.json();
     const roomCode = cleanRoomCode(body.roomCode);
-    const text = cleanText(body.text, 700);
+    const sessionId = cleanSessionId(body.sessionId);
     const userName = cleanText(body.userName || 'Anonymous', 80) || 'Anonymous';
 
     if (!roomCode) return NextResponse.json({ error: 'roomCode is required' }, { status: 400 });
-    if (!text || text.length < 3) return NextResponse.json({ error: 'Question is too short' }, { status: 400 });
+    if (!sessionId) return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
 
     await ensureRoom(sql, roomCode);
 
     const rows = await sql`
-      INSERT INTO questions (room_code, text, user_name)
-      VALUES (${roomCode}, ${text}, ${userName})
-      RETURNING id, text, user_name, created_at
+      INSERT INTO participants (room_code, session_id, user_name, joined_at, last_seen_at)
+      VALUES (${roomCode}, ${sessionId}, ${userName}, NOW(), NOW())
+      ON CONFLICT (room_code, session_id)
+      DO UPDATE SET user_name = EXCLUDED.user_name, last_seen_at = NOW()
+      RETURNING id, room_code, session_id, user_name, joined_at, last_seen_at
     `;
 
-    return NextResponse.json({ ok: true, question: rows[0] });
+    return NextResponse.json({ ok: true, participant: rows[0] });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -42,15 +48,15 @@ export async function GET(req) {
 
     await ensureRoom(sql, roomCode);
 
-    const questions = await sql`
-      SELECT id, text, user_name, created_at
-      FROM questions
+    const participants = await sql`
+      SELECT user_name, session_id, joined_at, last_seen_at
+      FROM participants
       WHERE room_code = ${roomCode}
-      ORDER BY created_at DESC
-      LIMIT 100
+      ORDER BY last_seen_at DESC
+      LIMIT 200
     `;
 
-    return NextResponse.json({ questions });
+    return NextResponse.json({ participants });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
