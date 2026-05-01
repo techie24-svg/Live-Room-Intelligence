@@ -1,18 +1,24 @@
-const { neon } = require('@neondatabase/serverless');
+const { Pool } = require('pg');
 const fs = require('fs');
 const path = require('path');
 
 async function main() {
   if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL is missing. Put it in .env.local or export it before running npm run db:init');
+    throw new Error('DATABASE_URL is missing. Add it before running npm run db:init');
   }
-  const sql = neon(process.env.DATABASE_URL);
-  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
-  const statements = schema.split(';').map(s => s.trim()).filter(Boolean);
-  for (const statement of statements) {
-    await sql.query(statement);
+
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+
+  try {
+    const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+    await pool.query(schema);
+    console.log('Database initialized.');
+  } finally {
+    await pool.end();
   }
-  console.log('Database initialized.');
 }
 
 main().catch((err) => {

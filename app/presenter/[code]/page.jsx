@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Brain, RefreshCw, Sparkles } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import EnergyBar from '@/components/EnergyBar';
 import QuestionCard from '@/components/QuestionCard';
 
