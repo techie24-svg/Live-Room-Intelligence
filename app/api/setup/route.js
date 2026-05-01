@@ -1,90 +1,21 @@
-import { useState } from "react";
+import { sql } from "@/lib/db";
 
-export default function SetupPage() {
-  const [secret, setSecret] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState("");
+export async function POST(req) {
+  try {
+    const { secret } = await req.json();
 
-  async function runSetup() {
-    setLoading(true);
-    setResult("");
-
-    try {
-      const res = await fetch("/api/setup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ secret }),
-      });
-
-      const text = await res.text();
-
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        throw new Error(`API returned non-JSON response: ${text}`);
-      }
-
-      if (!res.ok || !data.ok) {
-        throw new Error(data.error || `Setup failed with status ${res.status}`);
-      }
-
-      setResult("✅ Setup completed successfully");
-    } catch (err) {
-      setResult(`❌ Setup failed: ${err.message}`);
-    } finally {
-      setLoading(false);
+    if (secret !== process.env.SETUP_SECRET) {
+      return Response.json({ ok: false, error: "Invalid secret" }, { status: 401 });
     }
+
+    await sql(`CREATE TABLE IF NOT EXISTS questions (
+      id SERIAL PRIMARY KEY,
+      text TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    );`);
+
+    return Response.json({ ok: true });
+  } catch (e) {
+    return Response.json({ ok: false, error: e.message }, { status: 500 });
   }
-
-  return (
-    <main style={{ padding: 40, fontFamily: "Arial, sans-serif" }}>
-      <h1>Database Setup</h1>
-
-      <p>Enter your setup secret to initialize Neon tables.</p>
-
-      <input
-        type="password"
-        value={secret}
-        onChange={(e) => setSecret(e.target.value)}
-        placeholder="SETUP_SECRET"
-        style={{
-          padding: 12,
-          width: 320,
-          marginRight: 12,
-          border: "1px solid #ccc",
-          borderRadius: 8,
-        }}
-      />
-
-      <button
-        onClick={runSetup}
-        disabled={loading}
-        style={{
-          padding: "12px 18px",
-          borderRadius: 8,
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        {loading ? "Running..." : "Run Setup"}
-      </button>
-
-      {result && (
-        <pre
-          style={{
-            marginTop: 24,
-            padding: 16,
-            background: "#f4f4f4",
-            borderRadius: 8,
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {result}
-        </pre>
-      )}
-    </main>
-  );
 }
