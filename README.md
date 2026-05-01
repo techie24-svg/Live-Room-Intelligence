@@ -1,6 +1,6 @@
 # FeelPulse
 
-A full-stack live session app using **Next.js + Vercel + Neon Postgres + Gemini API**.
+A full-stack live session app using **Next.js + Vercel + Neon Postgres + Gemini API**.    
 
 It lets an audience:
 - react live: Engaged / Neutral / Lost
