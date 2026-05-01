@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { sql } from '@/lib/db';
 import { cleanRoomCode } from '@/lib/sanitize';
 
 function extractJson(text) {
-  const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+  const cleaned = String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
   try {
     return JSON.parse(cleaned);
   } catch (_) {
@@ -52,9 +52,6 @@ export async function POST(req) {
       return NextResponse.json({ result, warning: 'GEMINI_API_KEY missing. Returned fallback summary.' });
     }
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     const prompt = `
 You are analyzing anonymous questions from a live session.
 Be concise, neutral, and executive-ready. Do not invent facts.
@@ -73,14 +70,27 @@ Questions:
 ${questions.map((q, i) => `${i + 1}. ${q.text}`).join('\n')}
 `;
 
-    const response = await model.generateContent(prompt);
-    const raw = response.response.text();
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
+
+    const response = await ai.models.generateContent({
+      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      contents: prompt,
+    });
+
+    const raw =
+      response?.text ||
+      response?.candidates?.[0]?.content?.parts?.[0]?.text ||
+      '';
+
     const result = extractJson(raw);
 
     await sql`INSERT INTO summaries (room_code, result) VALUES (${roomCode}, ${JSON.stringify(result)}::jsonb)`;
 
     return NextResponse.json({ result });
   } catch (error) {
+    console.error('Summary API error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
