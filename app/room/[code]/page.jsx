@@ -104,6 +104,42 @@ export default function AudienceRoom({ params }) {
     { type: 'lost', label: 'Lost', icon: Frown, emoji: '😵‍💫' },
   ], []);
 
+  if (!participantName) {
+    return (
+      <main className="min-h-screen px-5 py-8">
+        <div className="mx-auto max-w-xl">
+          <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
+            <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Room</p>
+            <h1 className="mt-2 text-4xl font-bold">{roomCode}</h1>
+            <p className="mt-3 text-slate-300">Enter your name or nickname to join this session.</p>
+
+            <form onSubmit={saveName} className="mt-6 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+              <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-200">
+                <UserRound className="h-4 w-4" /> Your name or nickname
+              </label>
+              <div className="flex gap-2">
+                <input
+                  value={nameDraft}
+                  onChange={(e) => setNameDraft(e.target.value)}
+                  placeholder="Enter your name"
+                  maxLength={40}
+                  autoFocus
+                  className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500"
+                />
+                <button className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400">
+                  Join
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-slate-400">This name will appear with your questions.</p>
+            </form>
+
+            {status && <div className="mt-5 rounded-2xl bg-emerald-400/10 p-4 text-center text-emerald-200">{status}</div>}
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen px-5 py-8">
       <div className="mx-auto max-w-xl">
@@ -112,26 +148,11 @@ export default function AudienceRoom({ params }) {
           <h1 className="mt-2 text-4xl font-bold">{roomCode}</h1>
           <p className="mt-3 text-slate-300">React honestly and submit questions.</p>
 
-          <form onSubmit={saveName} className="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
-            <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-200">
-              <UserRound className="h-4 w-4" /> Your name or nickname
-            </label>
-            <div className="flex gap-2">
-              <input
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                placeholder="Enter your name"
-                maxLength={40}
-                className="min-w-0 flex-1 rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-white placeholder:text-slate-500"
-              />
-              <button className="rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400">
-                Save
-              </button>
-            </div>
-            {participantName && (
-              <p className="mt-2 text-xs text-slate-400">Joined as <span className="text-slate-200">{participantName}</span></p>
-            )}
-          </form>
+          <div className="mt-5 rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+            <p className="flex items-center gap-2 text-sm text-slate-400">
+              <UserRound className="h-4 w-4" /> Joined as <span className="font-semibold text-slate-200">{participantName}</span>
+            </p>
+          </div>
         </div>
 
         <section className="mt-6 rounded-3xl border border-white/10 bg-slate-950/50 p-5">
