@@ -1,24 +1,31 @@
 {
-  "name": "live-room",
+  "name": "feelpulse",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:init": "node db/init.js"
+    "lint": "next lint"
   },
   "dependencies": {
+    "@google/genai": "^1.0.0",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.45.4",
+    "lucide-react": "^0.468.0",
     "next": "14.2.16",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "pg": "^8.11.3",
-    "@google/genai": "^1.34.0",
-    "lucide-react": "^0.468.0",
-    "qrcode.react": "^4.2.0"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "tailwindcss": "^3.4.14",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.16",
     "postcss": "^8.4.47",
-    "autoprefixer": "^10.4.20"
+    "tailwindcss": "^3.4.14",
+    "typescript": "^5"
   }
 }
