@@ -3,8 +3,6 @@ import { GoogleGenAI } from '@google/genai';
 import { sql } from '@/lib/db';
 import { cleanRoomCode } from '@/lib/sanitize';
 
-export const dynamic = 'force-dynamic';
-
 function extractJson(text) {
   const cleaned = String(text || '').replace(/```json/gi, '').replace(/```/g, '').trim();
   try {
@@ -19,7 +17,9 @@ function extractJson(text) {
 function fallbackSummary(questions) {
   const topQuestions = questions.slice(0, 5).map((q) => q.text);
   return {
-    oneLineSummary: questions.length ? 'The room is asking for clearer priorities, timelines, and impact.' : 'No questions submitted yet.',
+    oneLineSummary: questions.length
+      ? 'The room is asking for clearer priorities, timelines, and impact.'
+      : 'No questions submitted yet.',
     overallSentiment: 'neutral',
     topThemes: questions.length ? ['Priorities', 'Timeline', 'Impact'] : [],
     repeatedQuestions: [],
@@ -30,11 +30,27 @@ function fallbackSummary(questions) {
   };
 }
 
+function isQuotaError(error) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return (
+    message.includes('429') ||
+    message.includes('resource_exhausted') ||
+    message.includes('quota') ||
+    message.includes('rate limit')
+  );
+}
+
+
+function cleanPin(value) {
+  return String(value || '').trim().replace(/\D/g, '').slice(0, 12);
+}
+
 async function verifyHostPin(roomCode, hostPin) {
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS host_pin TEXT`;
   const rows = await sql`SELECT host_pin FROM rooms WHERE code = ${roomCode} LIMIT 1`;
   if (!rows.length) return { ok: false, error: 'Room not found', status: 404 };
-  if (!rows[0].host_pin || rows[0].host_pin !== String(hostPin || '').trim()) {
-    return { ok: false, error: 'Invalid host PIN', status: 403 };
+  if (rows[0].host_pin && rows[0].host_pin !== hostPin) {
+    return { ok: false, error: 'Unauthorized host PIN', status: 403 };
   }
   return { ok: true };
 }
@@ -43,11 +59,15 @@ export async function POST(req) {
   try {
     const body = await req.json();
     const roomCode = cleanRoomCode(body.roomCode);
-    const hostPin = String(body.hostPin || '').trim();
-    if (!roomCode) return NextResponse.json({ error: 'roomCode is required' }, { status: 400 });
+    if (!roomCode) {
+      return NextResponse.json({ error: 'roomCode is required' }, { status: 400 });
+    }
 
+    const hostPin = cleanPin(body.hostPin);
     const hostCheck = await verifyHostPin(roomCode, hostPin);
-    if (!hostCheck.ok) return NextResponse.json({ error: hostCheck.error }, { status: hostCheck.status });
+    if (!hostCheck.ok) {
+      return NextResponse.json({ error: hostCheck.error }, { status: hostCheck.status });
+    }
 
     const questions = await sql`
       SELECT text, created_at
@@ -86,16 +106,32 @@ ${questions.map((q, i) => `${i + 1}. ${q.text}`).join('\n')}
 `;
 
     let result;
+
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
         contents: prompt,
       });
-      result = extractJson(response?.text || '');
+
+      const raw =
+        response?.text ||
+        response?.candidates?.[0]?.content?.parts?.[0]?.text ||
+        '';
+
+      result = extractJson(raw);
     } catch (geminiError) {
-      console.error('Gemini summary failed. Returning fallback summary:', geminiError);
+      console.error('Gemini summary failed:', geminiError);
       result = fallbackSummary(questions);
+
+      await sql`INSERT INTO summaries (room_code, result) VALUES (${roomCode}, ${JSON.stringify(result)}::jsonb)`;
+
+      return NextResponse.json({
+        result,
+        warning: isQuotaError(geminiError)
+          ? 'Gemini quota exceeded. Returned fallback summary. Enable billing, increase quota, or try again later.'
+          : 'Gemini failed. Returned fallback summary.',
+      });
     }
 
     await sql`INSERT INTO summaries (room_code, result) VALUES (${roomCode}, ${JSON.stringify(result)}::jsonb)`;

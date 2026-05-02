@@ -27,11 +27,30 @@ CREATE TABLE IF NOT EXISTS questions (
   room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
   text TEXT NOT NULL,
   user_name TEXT,
+  session_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS user_name TEXT;
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS session_id TEXT;
 CREATE INDEX IF NOT EXISTS idx_questions_room_created_at ON questions(room_code, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_questions_room_session_created_at ON questions(room_code, session_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS participants (
+  id BIGSERIAL PRIMARY KEY,
+  room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+  session_id TEXT NOT NULL,
+  user_name TEXT NOT NULL DEFAULT 'Anonymous',
+  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS session_id TEXT;
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS user_name TEXT NOT NULL DEFAULT 'Anonymous';
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE participants ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+CREATE UNIQUE INDEX IF NOT EXISTS participants_room_session_unique ON participants(room_code, session_id);
+CREATE INDEX IF NOT EXISTS idx_participants_room_last_seen ON participants(room_code, last_seen_at DESC);
 
 CREATE TABLE IF NOT EXISTS summaries (
   id BIGSERIAL PRIMARY KEY,

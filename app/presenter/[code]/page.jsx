@@ -1,13 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Brain, RefreshCw, Sparkles, Users } from 'lucide-react';
+import { Brain, LockKeyhole, RefreshCw, Sparkles, Users } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import EnergyBar from '@/components/EnergyBar';
 import QuestionCard from '@/components/QuestionCard';
 
 export default function Presenter({ params }) {
   const roomCode = params.code;
+  const [hostPin, setHostPin] = useState('');
+  const [pinInput, setPinInput] = useState('');
+  const [pinVerified, setPinVerified] = useState(false);
+  const [checkingPin, setCheckingPin] = useState(false);
+  const [pinError, setPinError] = useState('');
+
   const [reactions, setReactions] = useState({ engaged: 0, neutral: 0, lost: 0 });
   const [recent, setRecent] = useState({ engaged: 0, neutral: 0, lost: 0 });
   const [questions, setQuestions] = useState([]);
@@ -21,7 +27,44 @@ export default function Presenter({ params }) {
     return `/room/${roomCode}`;
   }, [roomCode]);
 
+  async function verifyPin(pinValue) {
+    const cleanPin = String(pinValue || '').replace(/\D/g, '').slice(0, 12);
+    if (!cleanPin) {
+      setPinError('Enter the host PIN for this room.');
+      return;
+    }
+
+    setCheckingPin(true);
+    setPinError('');
+    try {
+      const res = await fetch('/api/host', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode, hostPin: cleanPin }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) throw new Error(data.error || 'Incorrect host PIN');
+      window.localStorage.setItem(`hostPin:${roomCode}`, cleanPin);
+      setHostPin(cleanPin);
+      setPinVerified(true);
+    } catch (err) {
+      setPinVerified(false);
+      setPinError(err.message || 'Incorrect host PIN');
+    } finally {
+      setCheckingPin(false);
+    }
+  }
+
+  useEffect(() => {
+    const storedPin = window.localStorage.getItem(`hostPin:${roomCode}`) || '';
+    if (storedPin) {
+      setPinInput(storedPin);
+      verifyPin(storedPin);
+    }
+  }, [roomCode]);
+
   async function fetchAll() {
+    if (!pinVerified) return;
     try {
       const [reactionRes, questionRes, summaryRes, participantRes] = await Promise.all([
         fetch(`/api/reactions?roomCode=${roomCode}`, { cache: 'no-store' }),
@@ -50,11 +93,12 @@ export default function Presenter({ params }) {
       const res = await fetch('/api/summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomCode }),
+        body: JSON.stringify({ roomCode, hostPin }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to summarize');
       setSummary(data.result);
+      if (data.warning) setError(data.warning);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -63,12 +107,52 @@ export default function Presenter({ params }) {
   }
 
   useEffect(() => {
+    if (!pinVerified) return;
     fetchAll();
     const id = setInterval(fetchAll, 2000);
     return () => clearInterval(id);
-  }, [roomCode]);
+  }, [roomCode, pinVerified]);
 
   const totalRecent = recent.engaged + recent.neutral + recent.lost;
+
+  if (!pinVerified) {
+    return (
+      <main className="min-h-screen px-6 py-10">
+        <div className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-white/10 p-8 shadow-glow backdrop-blur">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="rounded-2xl bg-blue-500/20 p-3 text-blue-100"><LockKeyhole className="h-6 w-6" /></div>
+            <div>
+              <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Host Access</p>
+              <h1 className="text-3xl font-bold">Enter host PIN</h1>
+            </div>
+          </div>
+          <p className="mb-5 text-slate-300">Room code: <span className="font-semibold text-white">{roomCode}</span></p>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              verifyPin(pinInput);
+            }}
+          >
+            <input
+              value={pinInput}
+              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
+              placeholder="Host PIN"
+              inputMode="numeric"
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-center text-2xl font-bold tracking-[0.25em] text-white placeholder:text-base placeholder:font-medium placeholder:tracking-normal placeholder:text-slate-600"
+              autoFocus
+            />
+            <button
+              disabled={checkingPin}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-5 py-4 font-semibold transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {checkingPin ? 'Checking...' : 'Unlock dashboard'}
+            </button>
+          </form>
+          {pinError && <div className="mt-4 rounded-2xl bg-rose-500/10 p-4 text-center text-rose-200">{pinError}</div>}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen px-6 py-8">

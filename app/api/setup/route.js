@@ -15,12 +15,13 @@ async function createTables() {
     CREATE TABLE IF NOT EXISTS rooms (
       code TEXT PRIMARY KEY,
       title TEXT NOT NULL DEFAULT 'FeelPulse Session',
+      host_pin TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
 
-  // Migration for existing databases created by older zips.
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT 'FeelPulse Session'`;
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS host_pin TEXT`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS reactions (
@@ -43,10 +44,32 @@ async function createTables() {
       id BIGSERIAL PRIMARY KEY,
       room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
       text TEXT NOT NULL,
+      user_name TEXT,
+      session_id TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+  await sql`ALTER TABLE questions ADD COLUMN IF NOT EXISTS user_name TEXT`;
+  await sql`ALTER TABLE questions ADD COLUMN IF NOT EXISTS session_id TEXT`;
   await sql`CREATE INDEX IF NOT EXISTS idx_questions_room_created_at ON questions(room_code, created_at DESC)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_questions_room_session_created_at ON questions(room_code, session_id, created_at DESC)`;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS participants (
+      id BIGSERIAL PRIMARY KEY,
+      room_code TEXT NOT NULL REFERENCES rooms(code) ON DELETE CASCADE,
+      session_id TEXT NOT NULL,
+      user_name TEXT NOT NULL DEFAULT 'Anonymous',
+      joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS session_id TEXT`;
+  await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS user_name TEXT NOT NULL DEFAULT 'Anonymous'`;
+  await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`;
+  await sql`ALTER TABLE participants ADD COLUMN IF NOT EXISTS last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`;
+  await sql`CREATE UNIQUE INDEX IF NOT EXISTS participants_room_session_unique ON participants(room_code, session_id)`;
+  await sql`CREATE INDEX IF NOT EXISTS idx_participants_room_last_seen ON participants(room_code, last_seen_at DESC)`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS summaries (
