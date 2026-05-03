@@ -4,19 +4,81 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  MessageSquareText,
+  BarChart3,
+  CheckCircle2,
   Moon,
   QrCode,
+  ShieldCheck,
   Sparkles,
   Sun,
-  Users,
 } from "lucide-react";
-import FeelPulseLogo from "./components/FeelPulseLogo";
+
+function FeelPulseLogo({ size = 48 }) {
+  return (
+    <div className="flex items-center gap-3">
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 120 120"
+        fill="none"
+        aria-hidden="true"
+        className="shrink-0 drop-shadow-[0_0_18px_rgba(56,189,248,0.35)]"
+      >
+        <defs>
+          <linearGradient id="fp-ring-home" x1="18" y1="14" x2="104" y2="108">
+            <stop stopColor="#16d9f5" />
+            <stop offset="0.48" stopColor="#2f7cff" />
+            <stop offset="1" stopColor="#b13df6" />
+          </linearGradient>
+          <linearGradient id="fp-pulse-home" x1="30" y1="50" x2="88" y2="50">
+            <stop stopColor="#22d3ee" />
+            <stop offset="1" stopColor="#d8f3ff" />
+          </linearGradient>
+        </defs>
+
+        <path
+          d="M60 14C34.6 14 14 32.9 14 56.2c0 23.4 20.6 42.3 46 42.3 6.8 0 13.2-1.3 18.9-3.8l23.1 12.1-7.4-23.6c7.1-7.3 11.4-16.7 11.4-27C106 32.9 85.4 14 60 14Z"
+          stroke="url(#fp-ring-home)"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="#07111f"
+        />
+
+        <path
+          d="M31 57H45L52 38L65 78L73 57H89"
+          stroke="url(#fp-pulse-home)"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+
+        <circle cx="43" cy="78" r="5.5" fill="#21d07a" />
+        <circle cx="58" cy="82" r="5.5" fill="#f5aa28" />
+        <circle cx="73" cy="78" r="5.5" fill="#ff4965" />
+      </svg>
+
+      <div className="leading-none">
+        <div className="text-2xl font-black tracking-tight text-white">
+          Feel
+          <span className="bg-gradient-to-r from-sky-400 to-fuchsia-500 bg-clip-text text-transparent">
+            Pulse
+          </span>
+        </div>
+        <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.38em] text-slate-400">
+          Live Room Intelligence
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function makeRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
-  for (let i = 0; i < 6; i += 1) code += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 6; i += 1) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
   return code;
 }
 
@@ -30,6 +92,7 @@ function cleanRoomCode(value) {
 
 export default function Home() {
   const router = useRouter();
+
   const [joinCode, setJoinCode] = useState("");
   const [hostPinInput, setHostPinInput] = useState("");
   const [creating, setCreating] = useState(false);
@@ -75,7 +138,6 @@ export default function Home() {
 
   async function joinSession(e) {
     e.preventDefault();
-
     setJoining(true);
     setError("");
 
@@ -100,36 +162,37 @@ export default function Home() {
     router.push(`/room/${roomCode}`);
   }
 
-  const theme = light ? "bg-slate-50 text-slate-950" : "bg-[#030816] text-white";
-  const panel = light
-    ? "border-slate-200 bg-white/85 shadow-xl shadow-slate-200/60"
+  const theme = light ? "bg-slate-50 text-slate-950" : "bg-[#020617] text-white";
+  const shell = light
+    ? "border-slate-200 bg-white/90 shadow-2xl shadow-slate-200/70"
     : "border-white/10 bg-white/[0.045] shadow-2xl shadow-blue-950/30";
+  const card = light
+    ? "border-slate-200 bg-white shadow-lg shadow-slate-200/60"
+    : "border-white/10 bg-slate-900/70 shadow-2xl shadow-black/20";
   const muted = light ? "text-slate-600" : "text-slate-300";
+  const soft = light ? "text-slate-500" : "text-slate-400";
 
   return (
-    <main className={`min-h-screen overflow-hidden px-5 py-6 transition-colors duration-300 ${theme}`}>
+    <main className={`min-h-screen overflow-hidden px-4 py-5 transition-colors duration-500 md:px-6 md:py-6 ${theme}`}>
       <div
         className={`pointer-events-none fixed inset-0 ${
           light
-            ? "bg-[radial-gradient(circle_at_18%_22%,rgba(14,165,233,0.14),transparent_25%),radial-gradient(circle_at_86%_76%,rgba(168,85,247,0.16),transparent_30%)]"
-            : "bg-[radial-gradient(circle_at_18%_22%,rgba(14,165,233,0.20),transparent_25%),radial-gradient(circle_at_82%_72%,rgba(168,85,247,0.22),transparent_34%)]"
+            ? "bg-[radial-gradient(circle_at_22%_14%,rgba(14,165,233,0.16),transparent_24%),radial-gradient(circle_at_84%_72%,rgba(168,85,247,0.16),transparent_32%)]"
+            : "bg-[radial-gradient(circle_at_22%_14%,rgba(14,165,233,0.24),transparent_26%),radial-gradient(circle_at_82%_78%,rgba(168,85,247,0.20),transparent_34%)]"
         }`}
       />
 
-      <section className={`relative mx-auto max-w-7xl rounded-[2rem] border p-5 md:p-8 ${panel}`}>
-        <nav className="flex items-center justify-between gap-4">
-          <FeelPulseLogo size={50} showText />
+      <section className={`relative mx-auto min-h-[calc(100vh-48px)] max-w-7xl overflow-hidden rounded-[2rem] border ${shell}`}>
+        <div className="absolute right-0 top-0 h-80 w-80 translate-x-1/3 -translate-y-1/3 rounded-full bg-sky-500/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/2 h-96 w-96 -translate-x-1/2 translate-y-1/3 rounded-full bg-fuchsia-500/10 blur-3xl" />
 
-          <div className="hidden items-center gap-9 text-sm font-medium text-slate-300 md:flex">
-            <span className={light ? "text-slate-600" : ""}>Features</span>
-            <span className={light ? "text-slate-600" : ""}>How it works</span>
-            <span className={light ? "text-slate-600" : ""}>About</span>
-          </div>
+        <nav className="relative z-10 flex items-center justify-between gap-4 px-5 py-5 md:px-8">
+          <FeelPulseLogo size={48} />
 
           <button
             type="button"
             onClick={() => setLight((v) => !v)}
-            className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold ${
+            className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 ${
               light
                 ? "border-slate-200 bg-white text-slate-800"
                 : "border-white/10 bg-white/5 text-white hover:bg-white/10"
@@ -140,17 +203,9 @@ export default function Home() {
           </button>
         </nav>
 
-        <div className="mx-auto flex min-h-[680px] max-w-6xl flex-col justify-center py-10 lg:py-16">
-          <div className="text-center">
-            <div
-              className={`mb-8 inline-flex rounded-full border px-5 py-2 text-sm font-bold ${
-                light ? "border-slate-200 bg-white text-slate-700" : "border-white/10 bg-white/5 text-slate-200"
-              }`}
-            >
-              Live reactions • Anonymous questions • AI summaries
-            </div>
-
-            <h1 className="mx-auto max-w-5xl text-5xl font-black tracking-tight md:text-7xl">
+        <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-5 pb-10 pt-12 text-center md:px-8 md:pb-14 md:pt-16">
+          <div className="animate-[fadeIn_0.7s_ease-out]">
+            <h1 className="mx-auto max-w-5xl text-balance text-5xl font-black tracking-[-0.055em] md:text-7xl lg:text-8xl">
               Understand every room.
               <br />
               <span className="bg-gradient-to-r from-sky-400 via-blue-500 to-fuchsia-500 bg-clip-text text-transparent">
@@ -158,97 +213,119 @@ export default function Home() {
               </span>
             </h1>
 
-            <p className={`mx-auto mt-7 max-w-3xl text-lg leading-8 md:text-xl ${muted}`}>
-              FeelPulse helps presenters and educators read the room in real time with live
-              reactions, anonymous questions, and smart session summaries.
+            <p className={`mx-auto mt-7 max-w-3xl text-balance text-lg leading-8 md:text-xl ${muted}`}>
+              A polished live feedback layer for sessions, trainings, town halls, and classes —
+              with secure host controls, audience questions, mood signals, and AI-ready summaries.
             </p>
           </div>
 
-          <div className="mx-auto mt-10 grid w-full max-w-5xl gap-5 md:grid-cols-2">
-            <div className={`rounded-[1.75rem] border p-6 ${light ? "border-slate-200 bg-white" : "border-white/10 bg-slate-900/70"}`}>
-              <div className="mb-3 flex items-center gap-3">
-                <Sparkles className="h-5 w-5 text-sky-400" />
-                <h2 className="text-2xl font-black">Create your session</h2>
+          <div className="mt-11 grid w-full max-w-5xl gap-5 md:grid-cols-2">
+            <div className={`group rounded-[1.75rem] border p-6 text-left transition duration-300 hover:-translate-y-1 hover:shadow-2xl ${card}`}>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-2xl bg-sky-500/15 p-3">
+                  <Sparkles className="h-5 w-5 text-sky-400" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight">Create session</h2>
+                  <p className={`mt-1 text-sm ${soft}`}>Launch a protected host dashboard.</p>
+                </div>
               </div>
 
-              <p className={`text-sm ${muted}`}>Protect the host dashboard with a PIN.</p>
-
+              <label className={`mb-2 block text-sm font-bold ${soft}`}>Host PIN</label>
               <input
                 value={hostPinInput}
                 onChange={(e) => setHostPinInput(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                placeholder="Create 4-12 digit PIN"
+                placeholder="4-12 digit PIN"
                 inputMode="numeric"
-                className={`mt-6 w-full rounded-2xl border p-4 text-center text-lg font-bold tracking-[0.18em] outline-none ${
+                className={`w-full rounded-2xl border p-4 text-center text-lg font-black tracking-[0.16em] outline-none transition focus:border-sky-400 ${
                   light
                     ? "border-slate-200 bg-slate-50 text-slate-950 placeholder:text-slate-400"
-                    : "border-white/10 bg-slate-950 text-white placeholder:text-slate-600"
+                    : "border-white/10 bg-[#030816] text-white placeholder:text-slate-600"
                 }`}
               />
 
               <button
                 onClick={createSession}
                 disabled={creating}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-fuchsia-500 px-5 py-4 font-black text-white transition hover:scale-[1.01] disabled:opacity-60"
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-fuchsia-500 px-5 py-4 font-black text-white transition duration-300 hover:scale-[1.015] disabled:opacity-60"
               >
-                {creating ? "Creating..." : "Create Session"}
-                <ArrowRight className="h-5 w-5" />
+                {creating ? "Creating..." : "Create session"}
+                <ArrowRight className="h-5 w-5 transition group-hover:translate-x-1" />
               </button>
             </div>
 
             <form
               onSubmit={joinSession}
-              className={`rounded-[1.75rem] border p-6 ${light ? "border-slate-200 bg-white" : "border-white/10 bg-slate-900/70"}`}
+              className={`group rounded-[1.75rem] border p-6 text-left transition duration-300 hover:-translate-y-1 hover:shadow-2xl ${card}`}
             >
-              <div className="mb-3 flex items-center gap-3">
-                <QrCode className="h-5 w-5 text-fuchsia-400" />
-                <h2 className="text-2xl font-black">Join as participant</h2>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-2xl bg-fuchsia-500/15 p-3">
+                  <QrCode className="h-5 w-5 text-fuchsia-400" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black tracking-tight">Join room</h2>
+                  <p className={`mt-1 text-sm ${soft}`}>Enter the presenter’s room code.</p>
+                </div>
               </div>
 
-              <p className={`text-sm ${muted}`}>Enter the room code from the presenter.</p>
-
+              <label className={`mb-2 block text-sm font-bold ${soft}`}>Room code</label>
               <input
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 placeholder="ENTER CODE"
-                className={`mt-6 w-full rounded-2xl border p-4 text-center text-2xl font-black uppercase tracking-[0.25em] outline-none ${
+                className={`w-full rounded-2xl border p-4 text-center text-2xl font-black uppercase tracking-[0.24em] outline-none transition focus:border-fuchsia-400 ${
                   light
                     ? "border-slate-200 bg-slate-50 text-slate-950 placeholder:text-slate-400"
-                    : "border-white/10 bg-slate-950 text-white placeholder:text-slate-600"
+                    : "border-white/10 bg-[#030816] text-white placeholder:text-slate-600"
                 }`}
               />
 
-              <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-fuchsia-400/70 px-5 py-4 font-black transition hover:bg-fuchsia-500/10">
-                {joining ? "Joining..." : "Join Room"}
-                <ArrowRight className="h-5 w-5" />
+              <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-fuchsia-400/70 px-5 py-4 font-black transition duration-300 hover:scale-[1.015] hover:bg-fuchsia-500/10">
+                {joining ? "Joining..." : "Join as participant"}
+                <ArrowRight className="h-5 w-5 transition group-hover:translate-x-1" />
               </button>
             </form>
           </div>
 
           {error && (
-            <div className="mx-auto mt-6 max-w-5xl rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4 text-sm text-rose-200">
+            <div className="mt-6 w-full max-w-5xl rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4 text-left text-sm font-semibold text-rose-200">
               {error}
             </div>
           )}
 
-          <div className="mx-auto mt-8 grid w-full max-w-5xl gap-4 md:grid-cols-3">
+          <div className="mt-8 grid w-full max-w-5xl gap-4 md:grid-cols-3">
             {[
-              [Users, "Separate sessions", "Multiple hosts can run rooms at the same time."],
-              [MessageSquareText, "Anonymous Q&A", "Participants can choose name or Anonymous per question."],
-              [Sparkles, "AI insights", "Gemini summarizes key questions and themes."],
-            ].map(([Icon, title, body]) => (
+              [ShieldCheck, "Secure host access", "PIN-protected presenter dashboard and session controls."],
+              [BarChart3, "Room signals", "Track sentiment and engagement without interrupting the flow."],
+              [CheckCircle2, "Clear next steps", "Summaries turn questions into themes and actions."],
+            ].map(([Icon, title, body], index) => (
               <div
                 key={title}
-                className={`rounded-2xl border p-4 ${
+                className={`rounded-2xl border p-5 text-left transition duration-300 hover:-translate-y-1 ${
                   light ? "border-slate-200 bg-white/70" : "border-white/10 bg-white/5"
                 }`}
+                style={{ animation: `fadeIn 0.7s ease-out ${0.08 * index}s both` }}
               >
-                <Icon className="mb-3 h-5 w-5 text-sky-400" />
-                <h3 className="font-black">{title}</h3>
-                <p className={`mt-1 text-sm ${muted}`}>{body}</p>
+                <Icon className="mb-4 h-5 w-5 text-sky-400" />
+                <h3 className="text-base font-black">{title}</h3>
+                <p className={`mt-2 text-sm leading-6 ${soft}`}>{body}</p>
               </div>
             ))}
           </div>
         </div>
+
+        <style jsx>{`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(14px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
       </section>
     </main>
   );
