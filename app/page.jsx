@@ -4,11 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  BarChart3,
-  CheckCircle2,
   Moon,
   QrCode,
-  ShieldCheck,
   Sparkles,
   Sun,
 } from "lucide-react";
@@ -16,14 +13,7 @@ import {
 function FeelPulseLogo({ size = 48 }) {
   return (
     <div className="flex items-center gap-3">
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 120 120"
-        fill="none"
-        aria-hidden="true"
-        className="shrink-0 drop-shadow-[0_0_18px_rgba(56,189,248,0.35)]"
-      >
+      <svg width={size} height={size} viewBox="0 0 120 120" fill="none">
         <defs>
           <linearGradient id="fp-ring-home" x1="18" y1="14" x2="104" y2="108">
             <stop stopColor="#16d9f5" />
@@ -169,7 +159,6 @@ export default function Home() {
   const card = light
     ? "border-slate-200 bg-white shadow-lg shadow-slate-200/60"
     : "border-white/10 bg-slate-900/70 shadow-2xl shadow-black/20";
-  const muted = light ? "text-slate-600" : "text-slate-300";
   const soft = light ? "text-slate-500" : "text-slate-400";
 
   return (
@@ -203,7 +192,7 @@ export default function Home() {
           </button>
         </nav>
 
-        <div className="relative z-10 mx-auto flex max-w-6xl flex-col items-center px-5 pb-10 pt-12 text-center md:px-8 md:pb-14 md:pt-16">
+        <div className="relative z-10 mx-auto flex max-w-5xl flex-col items-center px-5 pb-12 pt-16 text-center md:px-8 md:pb-16 md:pt-20">
           <div className="animate-[fadeIn_0.7s_ease-out]">
             <h1 className="mx-auto max-w-5xl text-balance text-5xl font-black tracking-[-0.055em] md:text-7xl lg:text-8xl">
               Understand every room.
@@ -212,14 +201,9 @@ export default function Home() {
                 Engage every moment.
               </span>
             </h1>
-
-            <p className={`mx-auto mt-7 max-w-3xl text-balance text-lg leading-8 md:text-xl ${muted}`}>
-              A polished live feedback layer for sessions, trainings, town halls, and classes —
-              with secure host controls, audience questions, mood signals, and AI-ready summaries.
-            </p>
           </div>
 
-          <div className="mt-11 grid w-full max-w-5xl gap-5 md:grid-cols-2">
+          <div className="mt-16 grid w-full max-w-4xl gap-6 md:grid-cols-2">
             <div className={`group rounded-[1.75rem] border p-6 text-left transition duration-300 hover:-translate-y-1 hover:shadow-2xl ${card}`}>
               <div className="mb-5 flex items-center gap-3">
                 <div className="rounded-2xl bg-sky-500/15 p-3">
@@ -288,30 +272,10 @@ export default function Home() {
           </div>
 
           {error && (
-            <div className="mt-6 w-full max-w-5xl rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4 text-left text-sm font-semibold text-rose-200">
+            <div className="mt-6 w-full max-w-4xl rounded-2xl border border-rose-400/30 bg-rose-500/10 p-4 text-left text-sm font-semibold text-rose-200">
               {error}
             </div>
           )}
-
-          <div className="mt-8 grid w-full max-w-5xl gap-4 md:grid-cols-3">
-            {[
-              [ShieldCheck, "Secure host access", "PIN-protected presenter dashboard and session controls."],
-              [BarChart3, "Room signals", "Track sentiment and engagement without interrupting the flow."],
-              [CheckCircle2, "Clear next steps", "Summaries turn questions into themes and actions."],
-            ].map(([Icon, title, body], index) => (
-              <div
-                key={title}
-                className={`rounded-2xl border p-5 text-left transition duration-300 hover:-translate-y-1 ${
-                  light ? "border-slate-200 bg-white/70" : "border-white/10 bg-white/5"
-                }`}
-                style={{ animation: `fadeIn 0.7s ease-out ${0.08 * index}s both` }}
-              >
-                <Icon className="mb-4 h-5 w-5 text-sky-400" />
-                <h3 className="text-base font-black">{title}</h3>
-                <p className={`mt-2 text-sm leading-6 ${soft}`}>{body}</p>
-              </div>
-            ))}
-          </div>
         </div>
 
         <style jsx>{`
