@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Send, Smile, Meh, Frown, UserRound } from 'lucide-react';
+import { AlertTriangle, Send, Smile, Meh, Frown, UserRound } from 'lucide-react';
 
 import { getOrCreateSessionId } from '@/lib/session';
 
@@ -16,6 +16,8 @@ export default function AudienceRoom({ params }) {
   const [joining, setJoining] = useState(false);
   const [myQuestions, setMyQuestions] = useState([]);
   const [askAnonymously, setAskAnonymously] = useState(false);
+  const [roomEnded, setRoomEnded] = useState(false);
+  const [roomChecked, setRoomChecked] = useState(false);
 
   useEffect(() => {
     const id = getOrCreateSessionId(`voter:${roomCode}`);
@@ -28,15 +30,38 @@ export default function AudienceRoom({ params }) {
     }
   }, [roomCode]);
 
+
+
+  async function checkRoomStatus() {
+    try {
+      const res = await fetch(`/api/rooms?roomCode=${encodeURIComponent(roomCode)}`, { cache: 'no-store' });
+      const data = await res.json();
+      const ended = !res.ok || Boolean(data.room?.ended_at);
+      setRoomEnded(ended);
+      return ended;
+    } catch (_) {
+      // Keep the current UI if the status check temporarily fails.
+      return roomEnded;
+    } finally {
+      setRoomChecked(true);
+    }
+  }
+
   useEffect(() => {
-    if (!roomCode || !sessionId || !userName) return;
+    checkRoomStatus();
+    const id = setInterval(checkRoomStatus, 3000);
+    return () => clearInterval(id);
+  }, [roomCode]);
+
+  useEffect(() => {
+    if (!roomCode || !sessionId || !userName || roomEnded) return;
 
     fetch('/api/participants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomCode, sessionId, userName }),
     }).catch(() => {});
-  }, [roomCode, sessionId, userName]);
+  }, [roomCode, sessionId, userName, roomEnded]);
 
   async function loadMyQuestions(id = sessionId) {
     if (!roomCode || !id) return;
@@ -47,13 +72,19 @@ export default function AudienceRoom({ params }) {
     } catch (_) {}
   }
 
+
   useEffect(() => {
-    if (!roomCode || !sessionId || !userName) return;
+    if (!roomCode || !sessionId || !userName || roomEnded) return;
     loadMyQuestions(sessionId);
-  }, [roomCode, sessionId, userName]);
+  }, [roomCode, sessionId, userName, roomEnded]);
 
   async function joinRoom(e) {
     e.preventDefault();
+    const ended = await checkRoomStatus();
+    if (ended) {
+      setStatus('This session has ended.');
+      return;
+    }
     const finalName = nameInput.trim() || 'Anonymous';
     if (!sessionId) {
       setStatus('Preparing your session. Please try again.');
@@ -82,6 +113,10 @@ export default function AudienceRoom({ params }) {
   }
 
   async function sendReaction(type) {
+    if (roomEnded) {
+      setStatus('This session has ended.');
+      return;
+    }
     if (!sessionId) {
       setStatus('Preparing your voting session. Please tap again.');
       return;
@@ -97,7 +132,8 @@ export default function AudienceRoom({ params }) {
     });
 
     if (!res.ok) {
-      setStatus('Could not save vote');
+      if (res.status === 410) setRoomEnded(true);
+      setStatus(res.status === 410 ? 'This session has ended.' : 'Could not save vote');
       return;
     }
 
@@ -106,6 +142,10 @@ export default function AudienceRoom({ params }) {
 
   async function submitQuestion(e) {
     e.preventDefault();
+    if (roomEnded) {
+      setStatus('This session has ended.');
+      return;
+    }
     if (!question.trim()) return;
     const text = question.trim();
     const visibleName = askAnonymously ? 'Anonymous' : (userName || 'Anonymous');
@@ -118,7 +158,8 @@ export default function AudienceRoom({ params }) {
       body: JSON.stringify({ roomCode, text, userName: visibleName, sessionId }),
     });
     if (!res.ok) {
-      setStatus('Could not submit question');
+      if (res.status === 410) setRoomEnded(true);
+      setStatus(res.status === 410 ? 'This session has ended.' : 'Could not submit question');
       return;
     }
 
@@ -132,6 +173,25 @@ export default function AudienceRoom({ params }) {
     { type: 'neutral', label: 'Neutral', icon: Meh, emoji: '😐' },
     { type: 'lost', label: 'Lost', icon: Frown, emoji: '😵‍💫' },
   ], []);
+
+
+
+  if (roomChecked && roomEnded) {
+    return (
+      <main className="min-h-screen px-5 py-8">
+        <div className="mx-auto max-w-xl rounded-3xl border border-rose-300/20 bg-rose-500/10 p-6 text-rose-50 shadow-glow backdrop-blur">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="rounded-2xl bg-rose-500/20 p-3"><AlertTriangle className="h-6 w-6" /></div>
+            <div>
+              <p className="text-sm uppercase tracking-[0.25em] text-rose-100/80">FeelPulse</p>
+              <h1 className="text-3xl font-bold">This session has ended</h1>
+            </div>
+          </div>
+          <p className="text-rose-100/80">The host ended this session, so new votes and questions are closed.</p>
+        </div>
+      </main>
+    );
+  }
 
   if (!userName) {
     return (
@@ -177,8 +237,8 @@ export default function AudienceRoom({ params }) {
     <main className="min-h-screen px-5 py-8">
       <div className="mx-auto max-w-6xl">
         <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
-          <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Room</p>
-          <h1 className="mt-2 text-4xl font-bold">{roomCode}</h1>
+          <p className="text-sm uppercase tracking-[0.25em] text-blue-200">FeelPulse</p>
+          <h1 className="mt-2 text-4xl font-bold">FeelPulse</h1>
           <p className="mt-3 text-slate-300">React honestly and submit questions as <span className="font-semibold text-white">{userName}</span>.</p>
         </div>
 

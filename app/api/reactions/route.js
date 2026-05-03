@@ -10,6 +10,12 @@ async function ensureRoom(sql, roomCode) {
   await sql`INSERT INTO rooms (code) VALUES (${roomCode}) ON CONFLICT (code) DO NOTHING`;
 }
 
+async function getRoom(sql, roomCode) {
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ`;
+  const rows = await sql`SELECT ended_at FROM rooms WHERE code = ${roomCode} LIMIT 1`;
+  return rows[0] || null;
+}
+
 function cleanSessionId(value) {
   const sessionId = String(value || '').trim();
   if (!sessionId) return '';
@@ -36,6 +42,8 @@ export async function POST(req) {
     if (!sessionId) return NextResponse.json({ error: 'sessionId is required' }, { status: 400 });
 
     await ensureRoom(sql, roomCode);
+    const room = await getRoom(sql, roomCode);
+    if (room?.ended_at) return NextResponse.json({ error: 'This session has ended' }, { status: 410 });
     await ensureReactionSessionSchema(sql);
 
     await sql`

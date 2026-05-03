@@ -12,6 +12,12 @@ async function ensureRoom(sql, roomCode) {
   await sql`INSERT INTO rooms (code) VALUES (${roomCode}) ON CONFLICT (code) DO NOTHING`;
 }
 
+async function getRoom(sql, roomCode) {
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ`;
+  const rows = await sql`SELECT ended_at FROM rooms WHERE code = ${roomCode} LIMIT 1`;
+  return rows[0] || null;
+}
+
 export async function POST(req) {
   try {
     const sql = getSql();

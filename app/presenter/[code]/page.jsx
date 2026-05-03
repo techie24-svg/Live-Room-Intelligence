@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Brain, LockKeyhole, RefreshCw, Sparkles, Users } from 'lucide-react';
+import { AlertTriangle, Brain, LockKeyhole, Power, RefreshCw, Sparkles, Users } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import EnergyBar from '@/components/EnergyBar';
 import QuestionCard from '@/components/QuestionCard';
@@ -21,6 +21,8 @@ export default function Presenter({ params }) {
   const [summary, setSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState('');
+  const [roomEnded, setRoomEnded] = useState(false);
+  const [endingSession, setEndingSession] = useState(false);
 
   const audienceUrl = useMemo(() => {
     if (typeof window !== 'undefined') return `${window.location.origin}/room/${roomCode}`;
@@ -66,21 +68,24 @@ export default function Presenter({ params }) {
   async function fetchAll() {
     if (!pinVerified) return;
     try {
-      const [reactionRes, questionRes, summaryRes, participantRes] = await Promise.all([
+      const [reactionRes, questionRes, summaryRes, participantRes, roomRes] = await Promise.all([
         fetch(`/api/reactions?roomCode=${roomCode}`, { cache: 'no-store' }),
         fetch(`/api/questions?roomCode=${roomCode}`, { cache: 'no-store' }),
         fetch(`/api/summary?roomCode=${roomCode}`, { cache: 'no-store' }),
         fetch(`/api/participants?roomCode=${roomCode}`, { cache: 'no-store' }),
+        fetch(`/api/rooms?roomCode=${roomCode}`, { cache: 'no-store' }),
       ]);
       const reactionData = await reactionRes.json();
       const questionData = await questionRes.json();
       const summaryData = await summaryRes.json();
       const participantData = await participantRes.json();
+      const roomData = await roomRes.json();
       if (reactionData.totals) setReactions(reactionData.totals);
       if (reactionData.recent) setRecent(reactionData.recent);
       if (questionData.questions) setQuestions(questionData.questions);
       if (participantData.participants) setParticipants(participantData.participants);
       if (summaryData.summary?.result) setSummary(summaryData.summary.result);
+      if (roomData.room) setRoomEnded(Boolean(roomData.room.ended_at));
     } catch (err) {
       setError(err.message);
     }
@@ -103,6 +108,29 @@ export default function Presenter({ params }) {
       setError(err.message);
     } finally {
       setLoadingSummary(false);
+    }
+  }
+
+
+
+  async function endSession() {
+    if (!window.confirm('End this session now? Attendees will no longer be able to vote or ask questions.')) return;
+    setEndingSession(true);
+    setError('');
+    try {
+      const res = await fetch('/api/rooms', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode, hostPin, action: 'end' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not end session');
+      setRoomEnded(true);
+      fetchAll();
+    } catch (err) {
+      setError(err.message || 'Could not end session');
+    } finally {
+      setEndingSession(false);
     }
   }
 
@@ -162,36 +190,40 @@ export default function Presenter({ params }) {
             <p className="text-sm uppercase tracking-[0.3em] text-blue-200">Presenter Dashboard</p>
             <h1 className="mt-2 text-4xl font-bold">FeelPulse</h1>
             <p className="mt-2 text-slate-300">Room code: <span className="font-semibold text-white">{roomCode}</span></p>
+            <p className={`mt-3 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${roomEnded ? 'bg-rose-500/15 text-rose-200' : 'bg-emerald-500/15 text-emerald-200'}`}>
+              {roomEnded ? 'Session ended' : 'Session active'}
+            </p>
           </div>
-          <div className="flex items-center gap-4 rounded-3xl bg-white p-4 text-slate-950">
-            <QRCodeSVG value={audienceUrl} size={104} />
-            <div className="max-w-56">
-              <p className="font-bold">Audience join link</p>
-              <p className="break-all text-xs text-slate-600">{audienceUrl}</p>
+          <div className="flex flex-col gap-3 md:items-end">
+            <div className="flex items-center gap-4 rounded-3xl bg-white p-4 text-slate-950">
+              <QRCodeSVG value={audienceUrl} size={104} />
+              <div className="max-w-56">
+                <p className="font-bold">Audience join link</p>
+                <p className="break-all text-xs text-slate-600">{audienceUrl}</p>
+              </div>
             </div>
+            <button
+              onClick={endSession}
+              disabled={roomEnded || endingSession}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-300/30 bg-rose-500/15 px-5 py-3 font-semibold text-rose-100 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+            >
+              <Power className="h-5 w-5" /> {roomEnded ? 'Session ended' : endingSession ? 'Ending...' : 'End session'}
+            </button>
           </div>
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
           <section className="space-y-6">
-            <EnergyBar totals={reactions} />
-
-            <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-6">
-              <div className="flex items-center justify-between gap-3">
+            {roomEnded && (
+              <div className="flex items-start gap-3 rounded-3xl border border-rose-300/20 bg-rose-500/10 p-5 text-rose-100">
+                <AlertTriangle className="mt-1 h-5 w-5 shrink-0" />
                 <div>
-                  <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Live Signal</p>
-                  <h2 className="text-2xl font-bold">Last 30 seconds</h2>
+                  <p className="font-semibold">This session has ended.</p>
+                  <p className="mt-1 text-sm text-rose-100/80">Attendees will see an expired-session message and cannot submit new votes or questions.</p>
                 </div>
-                <div className="rounded-2xl bg-blue-500/20 px-4 py-2 text-blue-100">{totalRecent} reactions</div>
               </div>
-              <p className="mt-4 text-slate-300">
-                {totalRecent > 20
-                  ? 'Energy spike detected. This is a good moment to pause and address the room.'
-                  : totalRecent > 0
-                    ? 'Audience activity is flowing steadily.'
-                    : 'No recent reactions. Ask the room to scan and tap.'}
-              </p>
-            </div>
+            )}
+            <EnergyBar totals={reactions} />
 
             <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-6">
               <div className="mb-5 flex items-center justify-between">

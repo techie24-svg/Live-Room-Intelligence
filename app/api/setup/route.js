@@ -16,12 +16,14 @@ async function createTables() {
       code TEXT PRIMARY KEY,
       title TEXT NOT NULL DEFAULT 'FeelPulse Session',
       host_pin TEXT,
+      ended_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
 
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT 'FeelPulse Session'`;
   await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS host_pin TEXT`;
+  await sql`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS reactions (
