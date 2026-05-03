@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Users, QrCode, MessageSquareText } from 'lucide-react';
+import { ArrowRight, BarChart3, MessageSquareText, QrCode, ShieldCheck, Users } from 'lucide-react';
+import FeelPulseLogo from '@/components/FeelPulseLogo';
+import ThemeToggle from '@/components/ThemeToggle';
 
 function makeRoomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -25,7 +27,6 @@ export default function Home() {
 
   async function createSession() {
     const hostPin = hostPinInput.trim();
-
     if (!/^\d{4,12}$/.test(hostPin)) {
       setError('Set a host PIN using 4 to 12 numbers.');
       return;
@@ -44,9 +45,7 @@ export default function Home() {
 
       if (res.ok) {
         const data = await res.json();
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(`hostPin:${roomCode}`, data.hostPin || hostPin);
-        }
+        localStorage.setItem(`hostPin:${roomCode}`, data.hostPin || hostPin);
         router.push(`/presenter/${roomCode}`);
         return;
       }
@@ -60,8 +59,8 @@ export default function Home() {
     e.preventDefault();
     setJoining(true);
     setError('');
-    const roomCode = cleanRoomCode(joinCode);
 
+    const roomCode = cleanRoomCode(joinCode);
     if (!roomCode) {
       setError('Enter a room code.');
       setJoining(false);
@@ -75,77 +74,98 @@ export default function Home() {
       return;
     }
 
+    const data = await res.json();
+    if (data?.room && data.room.is_active === false) {
+      setError('This session has ended. Ask the host to create a new one.');
+      setJoining(false);
+      return;
+    }
+
     router.push(`/room/${roomCode}`);
   }
 
   return (
-    <main className="min-h-screen px-6 py-10">
-      <div className="mx-auto max-w-5xl">
-        <div className="rounded-3xl border border-white/10 bg-white/10 p-8 shadow-glow backdrop-blur">
-          <p className="mb-3 text-sm uppercase tracking-[0.3em] text-blue-200">FeelPulse</p>
-          <h1 className="max-w-3xl text-5xl font-bold leading-tight md:text-7xl">
-            Create a live session. Let people join by code.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg text-slate-300">
-            Each host gets a unique session code. Participants can ask many questions, but each person/device has one active feeling vote per session.
-          </p>
+    <main className="fp-shell min-h-screen overflow-hidden px-5 py-6">
+      <div className="pointer-events-none fixed inset-0 opacity-70">
+        <div className="fp-dot-wave absolute bottom-0 right-[-10%] h-72 w-[55rem] rotate-[-8deg]" />
+      </div>
 
-          <div className="mt-8 grid gap-4 md:grid-cols-[1fr_1fr]">
-            <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
-              <h2 className="text-2xl font-bold">Host a session</h2>
-              <p className="mt-2 text-slate-400">Create a fresh room code and protect the presenter dashboard with your own PIN.</p>
-              <label className="mt-5 block text-sm font-semibold text-slate-300">Host PIN</label>
-              <input
-                value={hostPinInput}
-                onChange={(e) => setHostPinInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                placeholder="Create 4-12 digit PIN"
-                inputMode="numeric"
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-center text-xl font-bold tracking-[0.2em] text-white placeholder:text-sm placeholder:font-medium placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-600"
-              />
-              <p className="mt-2 text-xs text-slate-500">Save this PIN. You will need it to reopen the host dashboard.</p>
-              <button
-                onClick={createSession}
-                disabled={creating}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-6 py-4 font-semibold text-white transition hover:bg-blue-400 disabled:opacity-60"
-              >
-                {creating ? 'Creating...' : 'Create new session'} <ArrowRight className="h-5 w-5" />
-              </button>
-            </div>
+      <div className="relative mx-auto max-w-7xl">
+        <nav className="mb-10 flex items-center justify-between rounded-3xl border border-[var(--fp-border)] bg-[var(--fp-card)] px-5 py-4 shadow-2xl shadow-black/10 backdrop-blur-xl">
+          <FeelPulseLogo size="sm" />
+          <div className="hidden items-center gap-8 text-sm font-medium text-[var(--fp-muted)] md:flex">
+            <span>Features</span>
+            <span>How it works</span>
+            <span>Security</span>
+          </div>
+          <ThemeToggle />
+        </nav>
 
-            <form onSubmit={joinSession} className="rounded-3xl border border-white/10 bg-slate-950/50 p-5">
-              <h2 className="text-2xl font-bold">Join a session</h2>
-              <p className="mt-2 text-slate-400">Enter the code shown on the presenter screen.</p>
-              <input
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="ENTER CODE"
-                className="mt-5 w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-center text-2xl font-bold uppercase tracking-[0.25em] text-white placeholder:text-slate-600"
-              />
-              <button
-                disabled={joining}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 px-6 py-4 font-semibold text-white transition hover:bg-white/10 disabled:opacity-60"
-              >
-                {joining ? 'Joining...' : 'Join room'} <ArrowRight className="h-5 w-5" />
-              </button>
-            </form>
+        <section className="grid items-center gap-10 rounded-[2rem] border border-[var(--fp-border)] bg-[var(--fp-card)] p-6 shadow-2xl shadow-black/10 backdrop-blur-xl lg:grid-cols-[0.85fr_1.15fr] lg:p-12">
+          <div className="flex justify-center lg:justify-start">
+            <FeelPulseLogo size="lg" showText={false} className="scale-150 py-16 lg:scale-[1.9]" />
           </div>
 
-          {error && <div className="mt-5 rounded-2xl bg-rose-500/10 p-4 text-rose-200">{error}</div>}
-        </div>
+          <div>
+            <div className="mb-6 inline-flex rounded-full border border-[var(--fp-border)] bg-[var(--fp-card-strong)] px-4 py-2 text-sm font-semibold text-[var(--fp-muted)]">
+              Live reactions · Anonymous questions · AI summaries
+            </div>
+            <h1 className="max-w-3xl text-5xl font-black tracking-tight text-[var(--fp-text)] md:text-7xl">
+              Understand every room. <span className="fp-gradient-text block">Engage every moment.</span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-[var(--fp-muted)]">
+              FeelPulse helps presenters and educators read the room in real time with live reactions, anonymous questions, and smart session summaries.
+            </p>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+            <div className="mt-8 grid gap-4 lg:grid-cols-2">
+              <div className="rounded-3xl border border-[var(--fp-border)] bg-[var(--fp-card-strong)] p-5">
+                <h2 className="text-xl font-bold text-[var(--fp-text)]">Create your session</h2>
+                <p className="mt-2 text-sm text-[var(--fp-muted)]">Protect the host dashboard with a PIN.</p>
+                <input
+                  value={hostPinInput}
+                  onChange={(e) => setHostPinInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                  placeholder="Create 4-12 digit PIN"
+                  inputMode="numeric"
+                  className="fp-input mt-4 w-full rounded-2xl p-4 text-center text-xl font-bold tracking-[0.2em] placeholder:text-sm placeholder:font-medium placeholder:normal-case placeholder:tracking-normal"
+                />
+                <button onClick={createSession} disabled={creating} className="fp-gradient-button mt-4 flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 font-bold transition hover:scale-[1.01] disabled:opacity-60">
+                  {creating ? 'Creating...' : 'Create Session'} <ArrowRight className="h-5 w-5" />
+                </button>
+              </div>
+
+              <form onSubmit={joinSession} className="rounded-3xl border border-[var(--fp-border)] bg-[var(--fp-card-strong)] p-5">
+                <h2 className="text-xl font-bold text-[var(--fp-text)]">Join as participant</h2>
+                <p className="mt-2 text-sm text-[var(--fp-muted)]">Enter the room code from the presenter.</p>
+                <input
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  placeholder="ENTER CODE"
+                  className="fp-input mt-4 w-full rounded-2xl p-4 text-center text-2xl font-black uppercase tracking-[0.25em]"
+                />
+                <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--fp-primary-2)] px-5 py-4 font-bold text-[var(--fp-text)] transition hover:bg-[var(--fp-card)]">
+                  {joining ? 'Joining...' : 'Join Room'} <ArrowRight className="h-5 w-5" />
+                </button>
+              </form>
+            </div>
+
+            {error && <p className="mt-5 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-300">{error}</p>}
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-4 md:grid-cols-4">
           {[
-            [Users, 'Multiple hosts', 'Every host creates a separate room/session code, so sessions do not mix.'],
-            [QrCode, 'Join by code or QR', 'Audience can scan the presenter QR or type the code manually.'],
-            [MessageSquareText, 'Questions + one feeling vote', 'People can ask multiple questions, but only one active feeling vote per session.'],
+            [Users, 'Real-time participants', 'See who joined your room.'],
+            [QrCode, 'Join by code or QR', 'Fast participant access.'],
+            [MessageSquareText, 'Anonymous Q&A', 'Questions with or without name.'],
+            [BarChart3, 'Room pulse', 'One feeling vote per attendee.'],
           ].map(([Icon, title, body]) => (
-            <div key={title} className="rounded-3xl border border-white/10 bg-slate-950/50 p-6">
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/20 text-blue-200"><Icon className="h-5 w-5" /></div>
-              <h2 className="text-xl font-semibold">{title}</h2>
-              <p className="mt-2 text-slate-400">{body}</p>
+            <div key={title} className="fp-card rounded-3xl p-5">
+              <Icon className="mb-4 h-6 w-6 text-sky-400" />
+              <h3 className="font-bold text-[var(--fp-text)]">{title}</h3>
+              <p className="mt-2 text-sm text-[var(--fp-muted)]">{body}</p>
             </div>
           ))}
-        </div>
+        </section>
       </div>
     </main>
   );
