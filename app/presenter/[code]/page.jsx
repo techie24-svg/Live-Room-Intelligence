@@ -11,7 +11,6 @@ import {
   Users,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import EnergyBar from '@/components/EnergyBar';
 import QuestionCard from '@/components/QuestionCard';
 import {
   FeelPulseBrand,
@@ -317,7 +316,12 @@ export default function Presenter({ params }) {
                 </div>
               </div>
 
-              <EnergyBar totals={reactions} />
+              <div className={light ? 'mt-6 h-4 overflow-hidden rounded-full bg-slate-200' : 'mt-6 h-4 overflow-hidden rounded-full bg-slate-950'}>
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-sky-400 to-fuchsia-500 transition-all duration-500"
+                  style={{ width: `${totalRecent ? Math.round((recent.engaged / totalRecent) * 100) : 0}%` }}
+                />
+              </div>
 
               <div className="mt-6 grid gap-3 md:grid-cols-3">
                 {[
