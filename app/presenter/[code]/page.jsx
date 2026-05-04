@@ -1,15 +1,28 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Brain, LockKeyhole, Power, RefreshCw, Sparkles, Users } from 'lucide-react';
+import {
+  AlertTriangle,
+  Brain,
+  LockKeyhole,
+  Power,
+  RefreshCw,
+  Sparkles,
+  Users,
+} from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import EnergyBar from '@/components/EnergyBar';
 import QuestionCard from '@/components/QuestionCard';
-import { FeelPulseBrand, LightThemeStyles, ThemeToggle, usePersistentTheme } from '@/components/FeelPulseBrand';
+import {
+  FeelPulseBrand,
+  ThemeToggle,
+  usePersistentTheme,
+} from '@/components/FeelPulseBrand';
 
 export default function Presenter({ params }) {
   const roomCode = params.code;
   const { light, toggleTheme, pageClass } = usePersistentTheme();
+
   const [hostPin, setHostPin] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [pinVerified, setPinVerified] = useState(false);
@@ -21,6 +34,7 @@ export default function Presenter({ params }) {
   const [questions, setQuestions] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [summary, setSummary] = useState(null);
+
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [error, setError] = useState('');
   const [roomEnded, setRoomEnded] = useState(false);
@@ -31,8 +45,19 @@ export default function Presenter({ params }) {
     return `/room/${roomCode}`;
   }, [roomCode]);
 
+  const card = light
+    ? 'border border-slate-200 bg-white shadow-lg shadow-slate-200/70'
+    : 'border border-white/10 bg-white/[0.045] shadow-2xl shadow-black/20';
+
+  const soft = light ? 'text-slate-600' : 'text-slate-400';
+  const eyebrow = light ? 'text-sky-600' : 'text-blue-200';
+  const mutedBox = light
+    ? 'border border-slate-200 bg-slate-50'
+    : 'border border-white/10 bg-slate-950/50';
+
   async function verifyPin(pinValue) {
     const cleanPin = String(pinValue || '').replace(/\D/g, '').slice(0, 12);
+
     if (!cleanPin) {
       setPinError('Enter the host PIN for this room.');
       return;
@@ -40,14 +65,18 @@ export default function Presenter({ params }) {
 
     setCheckingPin(true);
     setPinError('');
+
     try {
       const res = await fetch('/api/host', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode, hostPin: cleanPin }),
       });
+
       const data = await res.json();
+
       if (!res.ok || !data.ok) throw new Error(data.error || 'Incorrect host PIN');
+
       window.localStorage.setItem(`hostPin:${roomCode}`, cleanPin);
       setHostPin(cleanPin);
       setPinVerified(true);
@@ -69,19 +98,23 @@ export default function Presenter({ params }) {
 
   async function fetchAll() {
     if (!pinVerified) return;
+
     try {
-      const [reactionRes, questionRes, summaryRes, participantRes, roomRes] = await Promise.all([
-        fetch(`/api/reactions?roomCode=${roomCode}`, { cache: 'no-store' }),
-        fetch(`/api/questions?roomCode=${roomCode}`, { cache: 'no-store' }),
-        fetch(`/api/summary?roomCode=${roomCode}`, { cache: 'no-store' }),
-        fetch(`/api/participants?roomCode=${roomCode}`, { cache: 'no-store' }),
-        fetch(`/api/rooms?roomCode=${roomCode}`, { cache: 'no-store' }),
-      ]);
+      const [reactionRes, questionRes, summaryRes, participantRes, roomRes] =
+        await Promise.all([
+          fetch(`/api/reactions?roomCode=${roomCode}`, { cache: 'no-store' }),
+          fetch(`/api/questions?roomCode=${roomCode}`, { cache: 'no-store' }),
+          fetch(`/api/summary?roomCode=${roomCode}`, { cache: 'no-store' }),
+          fetch(`/api/participants?roomCode=${roomCode}`, { cache: 'no-store' }),
+          fetch(`/api/rooms?roomCode=${roomCode}`, { cache: 'no-store' }),
+        ]);
+
       const reactionData = await reactionRes.json();
       const questionData = await questionRes.json();
       const summaryData = await summaryRes.json();
       const participantData = await participantRes.json();
       const roomData = await roomRes.json();
+
       if (reactionData.totals) setReactions(reactionData.totals);
       if (reactionData.recent) setRecent(reactionData.recent);
       if (questionData.questions) setQuestions(questionData.questions);
@@ -96,14 +129,18 @@ export default function Presenter({ params }) {
   async function generateSummary() {
     setLoadingSummary(true);
     setError('');
+
     try {
       const res = await fetch('/api/summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode, hostPin }),
       });
+
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.error || 'Failed to summarize');
+
       setSummary(data.result);
       if (data.warning) setError(data.warning);
     } catch (err) {
@@ -113,20 +150,25 @@ export default function Presenter({ params }) {
     }
   }
 
-
-
   async function endSession() {
-    if (!window.confirm('End this session now? Attendees will no longer be able to vote or ask questions.')) return;
+    if (!window.confirm('End this session now? Attendees will no longer be able to vote or ask questions.')) {
+      return;
+    }
+
     setEndingSession(true);
     setError('');
+
     try {
       const res = await fetch('/api/rooms', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roomCode, hostPin, action: 'end' }),
       });
+
       const data = await res.json();
+
       if (!res.ok) throw new Error(data.error || 'Could not end session');
+
       setRoomEnded(true);
       fetchAll();
     } catch (err) {
@@ -138,8 +180,10 @@ export default function Presenter({ params }) {
 
   useEffect(() => {
     if (!pinVerified) return;
+
     fetchAll();
     const id = setInterval(fetchAll, 2000);
+
     return () => clearInterval(id);
   }, [roomCode, pinVerified]);
 
@@ -147,196 +191,272 @@ export default function Presenter({ params }) {
 
   if (!pinVerified) {
     return (
-      <main className={`min-h-screen px-6 py-10 transition-colors ${pageClass}`}>
-        <LightThemeStyles />
-        <div className="mx-auto mb-6 flex max-w-xl items-center justify-between gap-4">
-          <FeelPulseBrand light={light} />
-          <ThemeToggle light={light} onToggle={toggleTheme} />
-        </div>
-        <div className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-white/10 p-8 shadow-glow backdrop-blur">
-          <div className="mb-5 flex items-center gap-3">
-            <div className="rounded-2xl bg-blue-500/20 p-3 text-blue-100"><LockKeyhole className="h-6 w-6" /></div>
-            <div>
-              <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Host Access</p>
-              <h1 className="text-3xl font-bold">Enter host PIN</h1>
-            </div>
+      <main className={`min-h-screen px-4 py-8 ${pageClass}`}>
+        <div className="mx-auto max-w-xl">
+          <div className="mb-8 flex items-center justify-between">
+            <FeelPulseBrand light={light} />
+            <ThemeToggle light={light} toggleTheme={toggleTheme} />
           </div>
-          <p className="mb-5 text-slate-300">Room code: <span className="font-semibold text-white">{roomCode}</span></p>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              verifyPin(pinInput);
-            }}
-          >
-            <input
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
-              placeholder="Host PIN"
-              inputMode="numeric"
-              className="w-full rounded-2xl border border-white/10 bg-slate-900 p-4 text-center text-2xl font-bold tracking-[0.25em] text-white placeholder:text-base placeholder:font-medium placeholder:tracking-normal placeholder:text-slate-600"
-              autoFocus
-            />
-            <button
-              disabled={checkingPin}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-5 py-4 font-semibold transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+
+          <div className={`rounded-[2rem] p-6 ${card}`}>
+            <div className="mb-5 flex items-center gap-3">
+              <div className={light ? 'rounded-2xl bg-sky-100 p-3' : 'rounded-2xl bg-sky-500/15 p-3'}>
+                <LockKeyhole className="h-6 w-6 text-sky-400" />
+              </div>
+              <div>
+                <p className={`text-xs font-bold uppercase tracking-[0.35em] ${eyebrow}`}>Host Access</p>
+                <h1 className="text-2xl font-black">Enter host PIN</h1>
+              </div>
+            </div>
+
+            <p className={`mb-5 ${soft}`}>Room code: <span className="font-black">{roomCode}</span></p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                verifyPin(pinInput);
+              }}
+              className="space-y-4"
             >
-              {checkingPin ? 'Checking...' : 'Unlock dashboard'}
-            </button>
-          </form>
-          {pinError && <div className="mt-4 rounded-2xl bg-rose-500/10 p-4 text-center text-rose-200">{pinError}</div>}
+              <input
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                placeholder="Host PIN"
+                inputMode="numeric"
+                className={`w-full rounded-2xl border p-4 text-center text-2xl font-bold tracking-[0.25em] outline-none ${
+                  light
+                    ? 'border-slate-200 bg-slate-50 text-slate-950 placeholder:text-slate-400'
+                    : 'border-white/10 bg-slate-900 text-white placeholder:text-slate-600'
+                }`}
+                autoFocus
+              />
+
+              <button className="w-full rounded-2xl bg-gradient-to-r from-sky-500 via-blue-500 to-fuchsia-500 px-5 py-4 font-black text-white">
+                {checkingPin ? 'Checking...' : 'Unlock dashboard'}
+              </button>
+            </form>
+
+            {pinError && <p className="mt-4 text-sm font-semibold text-rose-400">{pinError}</p>}
+          </div>
         </div>
       </main>
     );
   }
 
   return (
-    <main className={`min-h-screen px-6 py-8 transition-colors ${pageClass}`}>
-      <LightThemeStyles />
-      <div className="mx-auto mb-6 flex max-w-7xl items-center justify-between gap-4">
-        <FeelPulseBrand light={light} />
-        <ThemeToggle light={light} onToggle={toggleTheme} />
-      </div>
+    <main className={`min-h-screen px-4 py-8 transition-colors duration-300 ${pageClass}`}>
       <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex flex-col justify-between gap-4 rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur md:flex-row md:items-center">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-blue-200">Presenter Dashboard</p>
-            <h1 className="mt-2 text-4xl font-bold">FeelPulse</h1>
-            <p className="mt-2 text-slate-300">Room code: <span className="font-semibold text-white">{roomCode}</span></p>
-            <p className={`mt-3 inline-flex rounded-full px-3 py-1 text-sm font-semibold ${roomEnded ? 'bg-rose-500/15 text-rose-200' : 'bg-emerald-500/15 text-emerald-200'}`}>
-              {roomEnded ? 'Session ended' : 'Session active'}
-            </p>
-          </div>
-          <div className="flex flex-col gap-3 md:items-end">
-            <div className="flex items-center gap-4 rounded-3xl bg-white p-4 text-slate-950">
-              <QRCodeSVG value={audienceUrl} size={104} />
-              <div className="max-w-56">
-                <p className="font-bold">Audience join link</p>
-                <p className="break-all text-xs text-slate-600">{audienceUrl}</p>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <FeelPulseBrand light={light} />
+          <ThemeToggle light={light} toggleTheme={toggleTheme} />
+        </div>
+
+        <section className={`mb-8 rounded-[2rem] p-6 md:p-8 ${card}`}>
+          <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <p className={`text-sm font-bold uppercase tracking-[0.35em] ${eyebrow}`}>Presenter Dashboard</p>
+              <h1 className="mt-3 text-4xl font-black">Session Control</h1>
+              <p className={`mt-3 text-lg ${soft}`}>
+                Room code: <span className="font-black text-current">{roomCode}</span>
+              </p>
+
+              <div className={`mt-5 inline-flex rounded-full px-5 py-2 text-sm font-black ${
+                roomEnded
+                  ? 'bg-rose-500/15 text-rose-500'
+                  : light
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-emerald-500/15 text-emerald-300'
+              }`}>
+                {roomEnded ? 'Session ended' : 'Session active'}
               </div>
             </div>
+
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <div className={`rounded-2xl p-3 ${light ? 'bg-slate-50 ring-1 ring-slate-200' : 'bg-white'}`}>
+                <QRCodeSVG value={audienceUrl} size={120} />
+              </div>
+
+              <div>
+                <p className="font-black">Audience join link</p>
+                <p className={`max-w-xs break-all text-sm ${soft}`}>{audienceUrl}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end">
             <button
               onClick={endSession}
               disabled={roomEnded || endingSession}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-rose-300/30 bg-rose-500/15 px-5 py-3 font-semibold text-rose-100 transition hover:bg-rose-500/25 disabled:cursor-not-allowed disabled:opacity-50 md:w-auto"
+              className="inline-flex items-center gap-2 rounded-2xl bg-rose-500/15 px-5 py-3 font-black text-rose-500 ring-1 ring-rose-400/25 transition hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <Power className="h-5 w-5" /> {roomEnded ? 'Session ended' : endingSession ? 'Ending...' : 'End session'}
+              <Power className="h-5 w-5" />
+              {roomEnded ? 'Session ended' : endingSession ? 'Ending...' : 'End session'}
             </button>
           </div>
-        </header>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-          <section className="space-y-6">
-            {roomEnded && (
-              <div className="flex items-start gap-3 rounded-3xl border border-rose-300/20 bg-rose-500/10 p-5 text-rose-100">
-                <AlertTriangle className="mt-1 h-5 w-5 shrink-0" />
-                <div>
-                  <p className="font-semibold">This session has ended.</p>
-                  <p className="mt-1 text-sm text-rose-100/80">Attendees will see an expired-session message and cannot submit new votes or questions.</p>
-                </div>
-              </div>
-            )}
-            <EnergyBar totals={reactions} />
+          {roomEnded && (
+            <div className="mt-5 rounded-2xl border border-rose-400/25 bg-rose-500/10 p-4 text-sm text-rose-500">
+              <AlertTriangle className="mr-2 inline h-4 w-4" />
+              Attendees will see an expired-session message and cannot submit new votes or questions.
+            </div>
+          )}
+        </section>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-950/50 p-6">
+        <div className="grid gap-6 lg:grid-cols-[1.5fr_0.75fr]">
+          <div className="space-y-6">
+            <section className={`rounded-[2rem] p-6 ${card}`}>
               <div className="mb-5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.25em] text-blue-200">Question Wall</p>
-                  <h2 className="text-2xl font-bold">{questions.length} questions</h2>
+                  <p className={`text-sm font-bold uppercase tracking-[0.35em] ${eyebrow}`}>Room Energy</p>
+                  <h2 className="text-3xl font-black">
+                    {totalRecent ? Math.round((recent.engaged / totalRecent) * 100) : 0}% engaged
+                  </h2>
                 </div>
-                <button onClick={fetchAll} className="rounded-2xl border border-white/10 p-3 transition hover:bg-white/10" aria-label="Refresh">
+                <div className={light ? 'rounded-full bg-blue-100 p-5' : 'rounded-full bg-blue-500/15 p-5'}>
+                  <Sparkles className="h-7 w-7 text-blue-400" />
+                </div>
+              </div>
+
+              <EnergyBar totals={reactions} />
+
+              <div className="mt-6 grid gap-3 md:grid-cols-3">
+                {[
+                  ['Engaged', reactions.engaged, 'bg-emerald-500/10'],
+                  ['Neutral', reactions.neutral, 'bg-amber-500/10'],
+                  ['Lost', reactions.lost, 'bg-rose-500/10'],
+                ].map(([label, count, bg]) => (
+                  <div key={label} className={`rounded-2xl p-4 text-center ${bg}`}>
+                    <p className="text-3xl font-black">{count}</p>
+                    <p className={`text-sm ${soft}`}>{label}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className={`rounded-[2rem] p-6 ${card}`}>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <p className={`text-sm font-bold uppercase tracking-[0.35em] ${eyebrow}`}>Question Wall</p>
+                  <h2 className="text-3xl font-black">{questions.length} questions</h2>
+                </div>
+
+                <button
+                  onClick={fetchAll}
+                  className={`rounded-2xl border p-3 ${light ? 'border-slate-200 bg-white text-slate-700' : 'border-white/10 bg-white/5 text-white'}`}
+                >
                   <RefreshCw className="h-5 w-5" />
                 </button>
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                {questions.length ? questions.map((q) => <QuestionCard key={q.id} question={q} />) : (
-                  <p className="rounded-2xl border border-dashed border-white/15 p-8 text-center text-slate-400 md:col-span-2">No questions yet.</p>
-                )}
-              </div>
-            </div>
-          </section>
+
+              {questions.length ? (
+                <div className="space-y-3">
+                  {questions.map((q) => (
+                    <QuestionCard key={q.id} question={q} />
+                  ))}
+                </div>
+              ) : (
+                <div className={`rounded-2xl border border-dashed p-8 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-white/15 text-slate-400'}`}>
+                  No questions yet.
+                </div>
+              )}
+            </section>
+          </div>
 
           <aside className="space-y-6">
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="rounded-2xl bg-blue-500/20 p-3"><Users className="h-6 w-6 text-blue-200" /></div>
+            <section className={`rounded-[2rem] p-6 ${card}`}>
+              <div className="mb-5 flex items-center gap-3">
+                <div className={light ? 'rounded-2xl bg-blue-100 p-3' : 'rounded-2xl bg-blue-500/15 p-3'}>
+                  <Users className="h-5 w-5 text-blue-400" />
+                </div>
                 <div>
-                  <p className="text-sm uppercase tracking-[0.2em] text-blue-200">Live Room</p>
-                  <h2 className="text-2xl font-bold">Current Participants ({participants.length})</h2>
+                  <p className={`text-sm font-bold uppercase tracking-[0.35em] ${eyebrow}`}>Live Room</p>
+                  <h2 className="text-2xl font-black">Current Participants ({participants.length})</h2>
                 </div>
               </div>
 
               {participants.length ? (
-                <div className="max-h-72 space-y-2 overflow-auto pr-1">
+                <div className="max-h-72 space-y-2 overflow-auto">
                   {participants.map((p) => (
-                    <div key={p.session_id || `${p.user_name}-${p.joined_at}`} className="flex items-center justify-between gap-3 rounded-2xl bg-slate-950/60 px-4 py-3">
-                      <span className="font-semibold text-slate-100">{p.user_name || 'Anonymous'}</span>
-                      <span className="text-xs text-slate-500">
-                        {p.last_seen_at ? new Date(p.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                      </span>
+                    <div key={p.session_id || p.user_name} className={`rounded-2xl px-4 py-3 ${mutedBox}`}>
+                      <p className="font-black">{p.user_name || 'Anonymous'}</p>
+                      {p.last_seen_at && (
+                        <p className={`text-xs ${soft}`}>
+                          Last seen {new Date(p.last_seen_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="rounded-2xl border border-dashed border-white/15 p-6 text-center text-slate-400">
+                <div className={`rounded-2xl border border-dashed p-6 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-white/15 text-slate-400'}`}>
                   No participants have joined yet.
-                </p>
+                </div>
               )}
-            </div>
+            </section>
 
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-6 shadow-glow backdrop-blur">
-              <div className="mb-4 flex items-center gap-3">
-                <div className="rounded-2xl bg-blue-500/20 p-3"><Brain className="h-6 w-6 text-blue-200" /></div>
+            <section className={`rounded-[2rem] p-6 ${card}`}>
+              <div className="mb-5 flex items-center gap-3">
+                <div className={light ? 'rounded-2xl bg-blue-100 p-3' : 'rounded-2xl bg-blue-500/15 p-3'}>
+                  <Brain className="h-5 w-5 text-blue-400" />
+                </div>
                 <div>
-                  <p className="text-sm uppercase tracking-[0.2em] text-blue-200">Gemini AI</p>
-                  <h2 className="text-2xl font-bold">Room Summary</h2>
+                  <p className={`text-sm font-bold uppercase tracking-[0.35em] ${eyebrow}`}>Gemini AI</p>
+                  <h2 className="text-2xl font-black">Room Summary</h2>
                 </div>
               </div>
+
               <button
                 onClick={generateSummary}
                 disabled={loadingSummary}
-                className="mb-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-500 px-5 py-4 font-semibold transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-2xl bg-blue-500 px-5 py-4 font-black text-white transition hover:bg-blue-400 disabled:opacity-60"
               >
-                <Sparkles className="h-5 w-5" /> {loadingSummary ? 'Summarizing...' : 'Summarize Questions'}
+                {loadingSummary ? 'Summarizing...' : 'Summarize Questions'}
               </button>
 
-              {error && <div className="mb-4 rounded-2xl bg-rose-500/10 p-4 text-sm text-rose-200">{error}</div>}
+              {error && (
+                <div className="mt-4 rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-600">
+                  {error}
+                </div>
+              )}
 
               {summary ? (
-                <div className="space-y-5">
-                  <div className="rounded-2xl bg-slate-950/60 p-4">
-                    <p className="text-sm text-slate-400">One-line summary</p>
-                    <p className="mt-1 font-semibold">{summary.oneLineSummary}</p>
+                <div className="mt-5 space-y-4">
+                  <div className={mutedBox + ' rounded-2xl p-4'}>
+                    <p className={`text-xs font-bold uppercase tracking-[0.2em] ${eyebrow}`}>One-line summary</p>
+                    <p className="mt-2">{summary.oneLineSummary}</p>
                   </div>
 
                   <div>
-                    <p className="mb-2 text-sm font-semibold text-slate-300">Top themes</p>
+                    <p className={`mb-2 text-xs font-bold uppercase tracking-[0.2em] ${eyebrow}`}>Top themes</p>
                     <div className="flex flex-wrap gap-2">
                       {(summary.topThemes || []).map((theme) => (
-                        <span key={theme} className="rounded-full bg-blue-500/20 px-3 py-1 text-sm text-blue-100">{theme}</span>
+                        <span key={theme} className={light ? 'rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700' : 'rounded-full bg-white/10 px-3 py-1 text-sm font-bold text-white'}>
+                          {theme}
+                        </span>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <p className="mb-2 text-sm font-semibold text-slate-300">Answer first</p>
-                    <div className="space-y-2">
+                    <p className={`mb-2 text-xs font-bold uppercase tracking-[0.2em] ${eyebrow}`}>Answer first</p>
+                    <ol className={`list-decimal space-y-2 pl-5 text-sm ${soft}`}>
                       {(summary.questionsToAnswerFirst || []).map((q, index) => (
-                        <div key={index} className="rounded-2xl bg-slate-950/60 p-3 text-sm">{q}</div>
+                        <li key={`${q}-${index}`}>{q}</li>
                       ))}
-                    </div>
+                    </ol>
                   </div>
 
-                  <div className="rounded-2xl bg-slate-950/60 p-4">
-                    <p className="text-sm text-slate-400">Executive summary</p>
-                    <p className="mt-1 text-slate-100">{summary.executiveSummary}</p>
+                  <div className={mutedBox + ' rounded-2xl p-4'}>
+                    <p className={`text-xs font-bold uppercase tracking-[0.2em] ${eyebrow}`}>Executive summary</p>
+                    <p className={`mt-2 text-sm ${soft}`}>{summary.executiveSummary}</p>
                   </div>
                 </div>
               ) : (
-                <p className="rounded-2xl border border-dashed border-white/15 p-6 text-center text-slate-400">
+                <div className={`mt-5 rounded-2xl border border-dashed p-6 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-white/15 text-slate-400'}`}>
                   Submit a few questions, then generate a summary.
-                </p>
+                </div>
               )}
-            </div>
+            </section>
           </aside>
         </div>
       </div>
