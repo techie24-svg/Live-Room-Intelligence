@@ -34,16 +34,16 @@ export default function AudienceRoom({ params }) {
 
   const card = light
     ? 'border border-slate-200 bg-white shadow-lg shadow-slate-200/70'
-    : 'border border-white/10 bg-white/[0.045] shadow-2xl shadow-black/20';
+    : 'border border-slate-800 bg-slate-900/95 shadow-2xl shadow-black/30';
 
   const input = light
     ? 'border-slate-200 bg-slate-50 text-slate-950 placeholder:text-slate-400'
-    : 'border-white/10 bg-slate-900 text-white placeholder:text-slate-500';
+    : 'border-slate-700 bg-slate-950 text-white placeholder:text-slate-500';
 
   const soft = light ? 'text-slate-600' : 'text-slate-400';
   const mutedBox = light
     ? 'border border-slate-200 bg-slate-50'
-    : 'border border-white/10 bg-slate-900/70';
+    : 'border border-slate-800 bg-slate-950/80';
 
   useEffect(() => {
     const id = getOrCreateSessionId(`voter:${roomCode}`);
@@ -333,7 +333,7 @@ export default function AudienceRoom({ params }) {
                         ? 'border-blue-300 bg-blue-500/20'
                         : light
                           ? 'border-slate-200 bg-slate-50 hover:bg-slate-100'
-                          : 'border-white/10 bg-white/5 hover:bg-white/10'
+                          : 'border-slate-700 bg-slate-900 hover:bg-slate-800'
                     }`}
                   >
                     <span className="flex items-center gap-3 font-bold">
@@ -389,7 +389,7 @@ export default function AudienceRoom({ params }) {
           <div className={`rounded-[2rem] p-6 ${card}`}>
             <div className="mb-4 flex items-center justify-between gap-3">
               <h2 className="text-xl font-black">My questions</h2>
-              <span className={light ? 'rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700' : 'rounded-full bg-white/10 px-3 py-1 text-sm font-bold text-slate-300'}>
+              <span className={light ? 'rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700' : 'rounded-full bg-slate-800 px-3 py-1 text-sm font-bold text-slate-300'}>
                 {myQuestions.length}
               </span>
             </div>
@@ -398,7 +398,7 @@ export default function AudienceRoom({ params }) {
               <div className="max-h-[420px] space-y-3 overflow-auto pr-1">
                 {myQuestions.map((q) => (
                   <div key={q.id} className={`rounded-2xl p-4 ${mutedBox}`}>
-                    <span className={light ? 'mb-2 inline-block rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200' : 'mb-2 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-slate-300'}>
+                    <span className={light ? 'mb-2 inline-block rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200' : 'mb-2 inline-block rounded-full bg-slate-800 px-3 py-1 text-xs font-bold text-slate-300'}>
                       {q.user_name || 'Anonymous'}
                     </span>
                     <p className="text-sm">{q.text}</p>
@@ -415,7 +415,7 @@ export default function AudienceRoom({ params }) {
                 ))}
               </div>
             ) : (
-              <p className={`rounded-2xl border border-dashed p-5 text-center text-sm ${light ? 'border-slate-200 text-slate-600' : 'border-white/15 text-slate-400'}`}>
+              <p className={`rounded-2xl border border-dashed p-5 text-center text-sm ${light ? 'border-slate-200 text-slate-600' : 'border-slate-700 text-slate-400'}`}>
                 Questions you ask in this room will appear here so you can review them.
               </p>
             )}

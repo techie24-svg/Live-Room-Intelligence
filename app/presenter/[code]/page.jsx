@@ -47,13 +47,13 @@ export default function Presenter({ params }) {
 
   const card = light
     ? 'border border-slate-200 bg-white shadow-lg shadow-slate-200/70'
-    : 'border border-white/10 bg-white/[0.045] shadow-2xl shadow-black/20';
+    : 'border border-slate-800 bg-slate-900/95 shadow-2xl shadow-black/30';
 
   const soft = light ? 'text-slate-600' : 'text-slate-400';
   const eyebrow = light ? 'text-sky-600' : 'text-blue-200';
   const mutedBox = light
     ? 'border border-slate-200 bg-slate-50'
-    : 'border border-white/10 bg-slate-950/50';
+    : 'border border-slate-800 bg-slate-950/80';
 
   async function verifyPin(pinValue) {
     const cleanPin = String(pinValue || '').replace(/\D/g, '').slice(0, 12);
@@ -342,7 +342,7 @@ export default function Presenter({ params }) {
 
                 <button
                   onClick={fetchAll}
-                  className={`rounded-2xl border p-3 ${light ? 'border-slate-200 bg-white text-slate-700' : 'border-white/10 bg-white/5 text-white'}`}
+                  className={`rounded-2xl border p-3 ${light ? 'border-slate-200 bg-white text-slate-700' : 'border-slate-700 bg-slate-900 text-white hover:bg-slate-800'}`}
                 >
                   <RefreshCw className="h-5 w-5" />
                 </button>
@@ -355,7 +355,7 @@ export default function Presenter({ params }) {
                   ))}
                 </div>
               ) : (
-                <div className={`rounded-2xl border border-dashed p-8 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-white/15 text-slate-400'}`}>
+                <div className={`rounded-2xl border border-dashed p-8 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-slate-700 text-slate-400'}`}>
                   No questions yet.
                 </div>
               )}
@@ -388,7 +388,7 @@ export default function Presenter({ params }) {
                   ))}
                 </div>
               ) : (
-                <div className={`rounded-2xl border border-dashed p-6 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-white/15 text-slate-400'}`}>
+                <div className={`rounded-2xl border border-dashed p-6 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-slate-700 text-slate-400'}`}>
                   No participants have joined yet.
                 </div>
               )}
@@ -430,7 +430,7 @@ export default function Presenter({ params }) {
                     <p className={`mb-2 text-xs font-bold uppercase tracking-[0.2em] ${eyebrow}`}>Top themes</p>
                     <div className="flex flex-wrap gap-2">
                       {(summary.topThemes || []).map((theme) => (
-                        <span key={theme} className={light ? 'rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700' : 'rounded-full bg-white/10 px-3 py-1 text-sm font-bold text-white'}>
+                        <span key={theme} className={light ? 'rounded-full bg-slate-100 px-3 py-1 text-sm font-bold text-slate-700' : 'rounded-full bg-slate-800 px-3 py-1 text-sm font-bold text-white'}>
                           {theme}
                         </span>
                       ))}
@@ -452,7 +452,7 @@ export default function Presenter({ params }) {
                   </div>
                 </div>
               ) : (
-                <div className={`mt-5 rounded-2xl border border-dashed p-6 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-white/15 text-slate-400'}`}>
+                <div className={`mt-5 rounded-2xl border border-dashed p-6 text-center ${light ? 'border-slate-200 text-slate-600' : 'border-slate-700 text-slate-400'}`}>
                   Submit a few questions, then generate a summary.
                 </div>
               )}

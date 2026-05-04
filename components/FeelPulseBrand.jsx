@@ -34,7 +34,7 @@ export function ThemeToggle({ light, toggleTheme }) {
       className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 ${
         light
           ? 'border-slate-200 bg-white text-slate-800 shadow-sm'
-          : 'border-white/10 bg-white/5 text-white hover:bg-white/10'
+          : 'border-slate-700 bg-slate-900 text-white hover:bg-slate-800'
       }`}
     >
       {light ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
