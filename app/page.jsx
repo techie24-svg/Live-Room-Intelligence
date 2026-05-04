@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Moon, QrCode, Sparkles, Sun } from "lucide-react";
 
-function FeelPulseLogo({ size = 48 , light = false }) {
+function FeelPulseLogo({ size = 48, light = false }) {
   return (
     <div className="flex items-center gap-3">
       <svg
@@ -50,11 +50,7 @@ function FeelPulseLogo({ size = 48 , light = false }) {
       </svg>
 
       <div className="leading-none">
-        <div
-            className={`text-2xl font-black tracking-tight ${
-              light ? "text-slate-900" : "text-white"
-            }`}
-          >
+        <div className={`text-2xl font-black tracking-tight ${light ? "text-slate-900" : "text-white"}`}>
           Feel
           <span className="bg-gradient-to-r from-sky-400 to-fuchsia-500 bg-clip-text text-transparent">
             Pulse
@@ -94,6 +90,19 @@ export default function Home() {
   const [joining, setJoining] = useState(false);
   const [error, setError] = useState("");
   const [light, setLight] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("feelpulse-theme");
+    setLight(savedTheme === "light");
+  }, []);
+
+  function toggleTheme() {
+    setLight((current) => {
+      const next = !current;
+      window.localStorage.setItem("feelpulse-theme", next ? "light" : "dark");
+      return next;
+    });
+  }
 
   async function createSession() {
     const hostPin = hostPinInput.trim();
@@ -181,11 +190,11 @@ export default function Home() {
         <div className="absolute bottom-0 left-1/2 h-96 w-96 -translate-x-1/2 translate-y-1/3 rounded-full bg-fuchsia-500/10 blur-3xl" />
 
         <nav className="relative z-10 flex items-center justify-between gap-4 px-5 py-5 md:px-8">
-          <FeelPulseLogo size={48} light={light}/>
+          <FeelPulseLogo size={48} light={light} />
 
           <button
             type="button"
-            onClick={() => setLight((v) => !v)}
+            onClick={toggleTheme}
             className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-bold transition hover:-translate-y-0.5 ${
               light
                 ? "border-slate-200 bg-white text-slate-800"

@@ -5,9 +5,11 @@ import { AlertTriangle, Brain, LockKeyhole, Power, RefreshCw, Sparkles, Users } 
 import { QRCodeSVG } from 'qrcode.react';
 import EnergyBar from '@/components/EnergyBar';
 import QuestionCard from '@/components/QuestionCard';
+import { FeelPulseBrand, LightThemeStyles, ThemeToggle, usePersistentTheme } from '@/components/FeelPulseBrand';
 
 export default function Presenter({ params }) {
   const roomCode = params.code;
+  const { light, toggleTheme, pageClass } = usePersistentTheme();
   const [hostPin, setHostPin] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [pinVerified, setPinVerified] = useState(false);
@@ -145,7 +147,12 @@ export default function Presenter({ params }) {
 
   if (!pinVerified) {
     return (
-      <main className="min-h-screen px-6 py-10">
+      <main className={`min-h-screen px-6 py-10 transition-colors ${pageClass}`}>
+        <LightThemeStyles />
+        <div className="mx-auto mb-6 flex max-w-xl items-center justify-between gap-4">
+          <FeelPulseBrand light={light} />
+          <ThemeToggle light={light} onToggle={toggleTheme} />
+        </div>
         <div className="mx-auto max-w-xl rounded-3xl border border-white/10 bg-white/10 p-8 shadow-glow backdrop-blur">
           <div className="mb-5 flex items-center gap-3">
             <div className="rounded-2xl bg-blue-500/20 p-3 text-blue-100"><LockKeyhole className="h-6 w-6" /></div>
@@ -183,7 +190,12 @@ export default function Presenter({ params }) {
   }
 
   return (
-    <main className="min-h-screen px-6 py-8">
+    <main className={`min-h-screen px-6 py-8 transition-colors ${pageClass}`}>
+      <LightThemeStyles />
+      <div className="mx-auto mb-6 flex max-w-7xl items-center justify-between gap-4">
+        <FeelPulseBrand light={light} />
+        <ThemeToggle light={light} onToggle={toggleTheme} />
+      </div>
       <div className="mx-auto max-w-7xl">
         <header className="mb-6 flex flex-col justify-between gap-4 rounded-3xl border border-white/10 bg-white/10 p-6 backdrop-blur md:flex-row md:items-center">
           <div>
